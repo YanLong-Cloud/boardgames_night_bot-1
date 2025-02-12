@@ -121,9 +121,13 @@ func (t Telegram) AddGame(c telebot.Context) error {
 
 		url := fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", results[0].ID)
 		bgUrl = &url
-		bgName = &results[0].Name
+		if results[0].Name != "" {
+			bgName = &results[0].Name
+		}
+
 		bgID = &results[0].ID
-		log.Printf("Game %s found: %s", gameName, *bgUrl)
+
+		log.Printf("Game %s id %d found: %s", gameName, *bgID, *bgUrl)
 
 		var things []gobgg.ThingResult
 
@@ -133,6 +137,11 @@ func (t Telegram) AddGame(c telebot.Context) error {
 
 		if len(things) > 0 {
 			maxPlayers = things[0].MaxPlayers
+			if things[0].Name != "" {
+				bgName = &things[0].Name
+			} else {
+				bgName = &gameName
+			}
 		}
 	}
 
@@ -165,7 +174,18 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		return c.Reply("Failed to edit message event: " + err.Error())
 	}
 
-	responseMsg, err := t.Bot.Reply(c.Message(), fmt.Sprintf("Game <b>%s</b> added! [0/%d] players.\nReply to this message with the max number of player to update (default 5)\nClick button to join.", gameName, maxPlayers))
+	link := ""
+	if bgUrl != nil && bgName != nil {
+		link = fmt.Sprintf(", <a href='%s'>%s</a>", *bgUrl, *bgName)
+	}
+
+	message := fmt.Sprintf("Game <b>%s</b>%s added! (1/%d players).\nReply to this message with the max number of player to update (default %d)\nClick button to join.", gameName, link, maxPlayers, maxPlayers)
+
+	responseMsg, err := t.Bot.Reply(
+		c.Message(),
+		message,
+		telebot.NoPreview,
+	)
 	if err != nil {
 		log.Println("Failed to create event:", err)
 		return c.Reply("Failed to create event: " + err.Error())
