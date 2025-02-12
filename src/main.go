@@ -4,7 +4,6 @@ import (
 	"boardgame-night-bot/src/database"
 	"boardgame-night-bot/src/models"
 	"boardgame-night-bot/src/telegram"
-	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -15,10 +14,39 @@ import (
 	"github.com/fzerorubigd/gobgg"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/robfig/cron/v3"
 	"gopkg.in/telebot.v3"
 )
 
-var db *sql.DB
+func callEndpoint(url string) func() {
+	return func() {
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Println("Error calling endpoint:", err)
+			return
+		}
+
+		defer resp.Body.Close()
+		log.Println("Endpoint called successfully at", time.Now())
+	}
+}
+
+func InitHealthCheck(url string) {
+	if url == "" {
+		log.Println("HEALTH_CHECK_URL is not set in .env file")
+		return
+	}
+
+	c := cron.New()
+	_, err := c.AddFunc("@hourly", callEndpoint(url))
+	if err != nil {
+		log.Println("Error scheduling cron job:", err)
+		return
+	}
+
+	c.Start()
+	log.Println("Cron job started...")
+}
 
 func main() {
 	var err error
@@ -28,10 +56,12 @@ func main() {
 	}
 
 	botToken := os.Getenv("TOKEN")
-
 	if botToken == "" {
 		log.Fatal("TOKEN is not set in .env file")
 	}
+
+	healthCheckUrl := os.Getenv("HEALTH_CHECK_URL")
+	InitHealthCheck(healthCheckUrl)
 
 	db := database.NewDatabase()
 
@@ -71,8 +101,6 @@ func main() {
 	bot.Handle("/add_game", telegram.AddGame)
 
 	bot.Handle(telebot.OnText, func(c telebot.Context) error {
-		// check if is a reply
-
 		if c.Message().ReplyTo == nil {
 			return nil
 		}

@@ -10,4 +10,7 @@ require (
 	gopkg.in/telebot.v3 v3.3.8
 )
 
-require golang.org/x/net v0.28.0 // indirect
+require (
+	github.com/robfig/cron/v3 v3.0.1
+	golang.org/x/net v0.28.0 // indirect
+)

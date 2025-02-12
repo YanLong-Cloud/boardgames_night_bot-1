@@ -22,6 +22,19 @@ type Telegram struct {
 	BGG *gobgg.BGG
 }
 
+func DefineUsername(user *telebot.User) string {
+	if user.Username != "" {
+		return user.Username
+	}
+
+	username := fmt.Sprintf("%s %s", user.FirstName, user.LastName)
+	if username != " " {
+		return username
+	}
+
+	return fmt.Sprintf("user_%d", user.ID)
+}
+
 func (t Telegram) CreateGame(c telebot.Context) error {
 	var err error
 	args := c.Args()
@@ -30,7 +43,7 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 	}
 	eventName := strings.Join(args[0:], " ")
 	userID := c.Sender().ID
-	userName := c.Sender().Username
+	userName := DefineUsername(c.Sender())
 	chatID := c.Chat().ID
 	var eventID int64
 	log.Printf("Creating event: %s by user: %s (%d) in chat: %d", eventName, userName, userID, chatID)
@@ -67,7 +80,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 
 	chatID := c.Chat().ID
 	userID := c.Sender().ID
-	userName := c.Sender().Username
+	userName := DefineUsername(c.Sender())
 	gameName := strings.Join(args[0:], " ")
 	maxPlayers := 5
 	log.Printf("Adding game: %s with max players: %d", gameName, maxPlayers)
@@ -216,7 +229,7 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 
 	chatID := c.Chat().ID
 	userID := c.Sender().ID
-	userName := c.Sender().Username
+	userName := DefineUsername(c.Sender())
 	log.Printf("User %s (%d) clicked to join a game.", userName, userID)
 
 	if _, err = t.DB.InsertParticipant(eventID, boardGameID, userID, userName); err != nil {
@@ -262,7 +275,7 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 
 	chatID := c.Chat().ID
 	userID := c.Sender().ID
-	userName := c.Sender().Username
+	userName := DefineUsername(c.Sender())
 	log.Printf("User %s (%d) clicked to exit a game.", userName, userID)
 
 	if err = t.DB.RemoveParticipant(eventID, userID); err != nil {
