@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"sort"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	_ "github.com/mattn/go-sqlite3"
@@ -50,6 +51,9 @@ func (d *Database) CreateTables() {
 			name TEXT,
 			max_players INTEGER,
 			message_id INTEGER,
+			bgg_id INTEGER,
+			bgg_name TEXT,
+			bgg_url TEXT,
 			FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE
 		);`,
 		`CREATE TABLE IF NOT EXISTS participants (
@@ -107,6 +111,9 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 	b.id,
 	b.name,
 	b.max_players,
+	b.bgg_id,
+	b.bgg_name,
+	b.bgg_url,
 	p.id,
 	p.user_id,
 	p.user_name
@@ -129,8 +136,8 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 		var boardGame models.BoardGame
 		var participant models.Participant
 
-		var eventMessageID, boardGameID, boardGameMaxPlayers, participantID, participantUserID pgtype.Int8
-		var boardGameName, participantUserName pgtype.Text
+		var eventMessageID, boardGameID, boardGameMaxPlayers, participantID, participantUserID, bggID pgtype.Int8
+		var boardGameName, participantUserName, bggName, bggUrl pgtype.Text
 
 		if err := rows.Scan(
 			&event.ID,
@@ -139,6 +146,9 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 			&boardGameID,
 			&boardGameName,
 			&boardGameMaxPlayers,
+			&bggID,
+			&bggName,
+			&bggUrl,
 			&participantID,
 			&participantUserID,
 			&participantUserName,
@@ -153,6 +163,9 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 				ID:         *IntOrNil(boardGameID),
 				Name:       *StringOrNil(boardGameName),
 				MaxPlayers: *IntOrNil(boardGameMaxPlayers),
+				BggID:      IntOrNil(bggID),
+				BggName:    StringOrNil(bggName),
+				BggUrl:     StringOrNil(bggUrl),
 			}
 
 			if _, ok := boardGameMap[boardGame.ID]; !ok {
@@ -172,8 +185,16 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 	}
 
 	for _, boardGame := range boardGameMap {
+		sort.SliceStable(boardGame.Participants, func(i, j int) bool {
+			return boardGame.Participants[i].UserName < boardGame.Participants[j].UserName
+		})
+
 		event.BoardGames = append(event.BoardGames, *boardGame)
 	}
+
+	sort.SliceStable(event.BoardGames, func(i, j int) bool {
+		return event.BoardGames[i].Name < event.BoardGames[j].Name || (event.BoardGames[i].Name == event.BoardGames[j].Name && event.BoardGames[i].ID < event.BoardGames[j].ID)
+	})
 
 	return event, nil
 }
@@ -193,15 +214,18 @@ func (d *Database) UpdateEventMessageID(eventID, messageID int64) error {
 	return nil
 }
 
-func (d *Database) InsertBoardGame(eventID int64, name string, maxPlayers int) (int64, error) {
+func (d *Database) InsertBoardGame(eventID int64, name string, maxPlayers int, bggID *int64, bggName, bggUrl *string) (int64, error) {
 	var boardGameID int64
-	query := `INSERT INTO boardgames (event_id, name, max_players) VALUES (@event_id, @name, @max_players) RETURNING id;`
+	query := `INSERT INTO boardgames (event_id, name, max_players, bgg_id, bgg_name, bgg_url) VALUES (@event_id, @name, @max_players, @bgg_id, @bgg_name, @bgg_url) RETURNING id;`
 
 	if err := d.db.QueryRow(query,
 		NamedArgs(map[string]any{
 			"event_id":    eventID,
 			"name":        name,
 			"max_players": maxPlayers,
+			"bgg_id":      bggID,
+			"bgg_url":     bggUrl,
+			"bgg_name":    bggName,
 		})...,
 	).Scan(&boardGameID); err != nil {
 		return 0, err

@@ -3,12 +3,15 @@ package telegram
 import (
 	"boardgame-night-bot/src/database"
 	"boardgame-night-bot/src/models"
+	"context"
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/fzerorubigd/gobgg"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/telebot.v3"
 )
@@ -16,6 +19,7 @@ import (
 type Telegram struct {
 	Bot *telebot.Bot
 	DB  *database.Database
+	BGG *gobgg.BGG
 }
 
 func (t Telegram) CreateGame(c telebot.Context) error {
@@ -38,7 +42,7 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 
 	body := fmt.Sprintf("🎲 '%s'\nNo game added yet please /add_game to add games.", eventName)
 
-	responseMsg, err := t.Bot.Reply(c.Message(), body)
+	responseMsg, err := t.Bot.Reply(c.Message(), body, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to create event:", err)
 		return c.Reply("Failed to create event: " + err.Error())
@@ -76,7 +80,40 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		return c.Reply("Event not found in the db " + err.Error())
 	}
 
-	if boardGameID, err = t.DB.InsertBoardGame(event.ID, gameName, maxPlayers); err != nil {
+	ctx := context.Background()
+	var results []gobgg.SearchResult
+	var bgUrl, bgName *string
+	var bgID *int64
+
+	if results, err = t.BGG.Search(ctx, gameName); err != nil {
+		log.Printf("Failed to search game %s: %v", gameName, err)
+	}
+
+	if len(results) == 0 {
+		log.Printf("Game %s not found", gameName)
+	} else {
+		sort.Slice(results, func(i, j int) bool {
+			return results[i].ID < results[j].ID
+		})
+
+		url := fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", results[0].ID)
+		bgUrl = &url
+		bgName = &results[0].Name
+		bgID = &results[0].ID
+		log.Printf("Game %s found: %s", gameName, *bgUrl)
+
+		var things []gobgg.ThingResult
+
+		if things, err = t.BGG.GetThings(ctx, gobgg.GetThingIDs(*bgID)); err != nil {
+			log.Printf("Failed to get game %s: %v", gameName, err)
+		}
+
+		if len(things) > 0 {
+			maxPlayers = things[0].MaxPlayers
+		}
+	}
+
+	if boardGameID, err = t.DB.InsertBoardGame(event.ID, gameName, maxPlayers, bgID, bgName, bgUrl); err != nil {
 		log.Println("Failed to add game:", err)
 		return c.Reply("Failed to add game: " + err.Error())
 	}
@@ -96,7 +133,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
 		Chat: c.Chat(),
-	}, body, markup)
+	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message")
 		return c.Reply("Failed to edit message event: " + err.Error())
@@ -150,7 +187,7 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
 		Chat: c.Chat(),
-	}, body, markup)
+	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message")
 		return c.Reply("Failed to edit message event: " + err.Error())
@@ -196,7 +233,7 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
 		Chat: c.Chat(),
-	}, body, markup)
+	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message")
 		return c.Reply("Failed to edit message event: " + err.Error())
@@ -242,7 +279,7 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
 		Chat: c.Chat(),
-	}, body, markup)
+	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message")
 		return c.Reply("Failed to edit message event: " + err.Error())

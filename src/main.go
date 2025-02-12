@@ -6,11 +6,13 @@ import (
 	"boardgame-night-bot/src/telegram"
 	"database/sql"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
 	"time"
 
+	"github.com/fzerorubigd/gobgg"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/telebot.v3"
@@ -51,9 +53,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	bgg := gobgg.NewBGGClient(gobgg.SetClient(client))
+
 	telegram := telegram.Telegram{
 		Bot: bot,
 		DB:  db,
+		BGG: bgg,
 	}
 
 	log.Println("Bot started.")
