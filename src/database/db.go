@@ -180,7 +180,7 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 				UserName: *StringOrNil(participantUserName),
 			}
 
-			boardGameMap[boardGame.ID].Participants = append(boardGame.Participants, participant)
+			boardGameMap[boardGame.ID].Participants = append(boardGameMap[boardGame.ID].Participants, participant)
 		}
 	}
 
