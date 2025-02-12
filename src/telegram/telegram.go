@@ -229,6 +229,11 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		return c.Reply(failedT)
 	}
 
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
+	}
+
 	body, markup := event.FormatMsg(t.Localizer(c))
 
 	_, err = t.Bot.Edit(&telebot.Message{
@@ -327,6 +332,11 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 		return c.Reply(failedT)
 	}
 
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
+	}
+
 	body, markup := event.FormatMsg(t.Localizer(c))
 
 	_, err = t.Bot.Edit(&telebot.Message{
@@ -384,6 +394,11 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 	if event, err = t.DB.SelectEvent(chatID); err != nil {
 		log.Println("Failed to add game:", err)
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToUpdateGame"}}))
+	}
+
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
 	body, markup := event.FormatMsg(t.Localizer(c))
@@ -473,6 +488,11 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "EventNotFound"}}))
 	}
 
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
+	}
+
 	body, markup := event.FormatMsg(t.Localizer(c))
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
@@ -520,6 +540,11 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 	if event, err = t.DB.SelectEvent(chatID); err != nil {
 		log.Println("Failed to add game:", err)
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "EventNotFound"}}))
+	}
+
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
 	body, markup := event.FormatMsg(t.Localizer(c))

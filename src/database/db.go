@@ -190,6 +190,10 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 		}
 	}
 
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
 	for _, boardGame := range boardGameMap {
 		sort.SliceStable(boardGame.Participants, func(i, j int) bool {
 			return boardGame.Participants[i].UserName < boardGame.Participants[j].UserName
