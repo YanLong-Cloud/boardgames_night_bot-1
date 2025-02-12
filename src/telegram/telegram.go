@@ -3,6 +3,7 @@ package telegram
 import (
 	"boardgame-night-bot/src/database"
 	"boardgame-night-bot/src/models"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -123,12 +124,16 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 
 	maxPlayers, err2 := strconv.ParseInt(maxPlayerS, 10, 64)
 	if err2 != nil {
-		return c.Reply("Invalid game id or number of players")
+		return c.Reply("Invalid number of players")
 	}
 
 	log.Printf("Updating game message id: %d with number of players: %d", messageID, maxPlayers)
 
 	if err = t.DB.UpdateBoardGamePlayerNumber(int64(messageID), int(maxPlayers)); err != nil {
+		if errors.Is(err, database.ErrNoRows) {
+			return c.Reply("Game not found. You are trying to update the number of players of a game that does not exist. You are probably commenting on the wrong message.")
+		}
+
 		log.Println("Failed to update game:", err)
 		return c.Reply("Failed to update game: " + err.Error())
 	}

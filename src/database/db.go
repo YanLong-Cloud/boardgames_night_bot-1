@@ -3,6 +3,7 @@ package database
 import (
 	"boardgame-night-bot/src/models"
 	"database/sql"
+	"errors"
 	"log"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -12,6 +13,8 @@ import (
 type Database struct {
 	db *sql.DB
 }
+
+var ErrNoRows = errors.New("sql: no rows in result set")
 
 func NewDatabase() *Database {
 	db, err := sql.Open("sqlite3", "bot_data.sqlite")
@@ -223,15 +226,17 @@ func (d *Database) UpdateBoardGameMessageID(boardgameID, messageID int64) error 
 }
 
 func (d *Database) UpdateBoardGamePlayerNumber(messageID int64, maxPlayers int) error {
-	query := `UPDATE boardgames SET max_players = @max_players where message_id = @message_id;`
+	var boardGameID int64
 
-	if _, err := d.db.Exec(query,
+	query := `UPDATE boardgames SET max_players = @max_players where message_id = @message_id RETURNING id;`
+
+	if err := d.db.QueryRow(query,
 		NamedArgs(map[string]any{
 			"max_players": maxPlayers,
 			"message_id":  messageID,
 		})...,
-	); err != nil {
-		return err
+	).Scan(&boardGameID); err != nil {
+		return ParseError(err)
 	}
 
 	return nil
@@ -286,4 +291,12 @@ func StringOrNil(i pgtype.Text) *string {
 	}
 
 	return nil
+}
+
+func ParseError(err error) error {
+	if err.Error() == "sql: no rows in result set" {
+		return ErrNoRows
+	}
+
+	return err
 }
