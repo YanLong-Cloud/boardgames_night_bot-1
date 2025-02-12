@@ -19,6 +19,11 @@ To install the Boardgame Night Bot, follow these steps:
     ```bash
     cd boardgame_night_bot
     ```
+3. Create a file `.env` please include the following secrets
+    ```
+    TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    HEALTH_CHECK_URL=https://hc-ping.com/xxxxxxxxxxxxxxxxxxx
+    ```
 
 ## Usage
 
