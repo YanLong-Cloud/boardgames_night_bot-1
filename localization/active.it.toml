@@ -20,6 +20,7 @@ InvalidBggURL = "L'URL di BoardGameGeek è invalido. Per favore riprova."
 EventCreated = "📆 <b>{{.Name}}</b>\nNessun gioco aggiunto ancora, usa /add_game per aggiungere giochi."  
 GameAdded = "Gioco <b>{{.Name}}</b>{{.Link}} aggiunto! (1/{{.MaxPlayers}} giocatori).\nRispondi a questo messaggio con il numero massimo di giocatori per aggiornarlo (predefinito {{.MaxPlayers}}).\nPuoi anche inviarmi il link di https://boardgamegeek.com/ per aggiornare le informazioni del gioco.\nClicca sul pulsante per partecipare."
 GameUpdated = "Gioco aggiornato!"
+LanguageSet = "Lingua impostata su {{.Language}}."
 
 GameNotFound = "Gioco non trovato. Stai cercando di aggiornare le informazioni di un gioco che non esiste. Probabilmente stai commentando il messaggio sbagliato."  
 EventNotFound = "Evento non trovato."
