@@ -22,6 +22,8 @@ type Telegram struct {
 	BGG *gobgg.BGG
 }
 
+const MessageUnchangedErrorMessage = "specified new message content and reply markup are exactly the same as a current content and reply markup of the message"
+
 func DefineUsername(user *telebot.User) string {
 	if user.Username != "" {
 		return user.Username
@@ -33,6 +35,14 @@ func DefineUsername(user *telebot.User) string {
 	}
 
 	return fmt.Sprintf("user_%d", user.ID)
+}
+
+func (t Telegram) Start(c telebot.Context) error {
+	return c.Send(`Welcome to Boardgame Night Bot! 🎲
+	We are here to help you organize your boardgame night.
+	Use /create [event name] to create a new event and /add_game [game name] to add games to the event.
+	Click on the buttons to join or leave a game.
+	Have fun! 🎉`)
 }
 
 func (t Telegram) CreateGame(c telebot.Context) error {
@@ -53,7 +63,7 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 		return c.Reply("Failed to create event: " + err.Error())
 	}
 
-	body := fmt.Sprintf("🎲 '%s'\nNo game added yet please /add_game to add games.", eventName)
+	body := fmt.Sprintf("📆 <b>%s</b>\nNo game added yet please /add_game to add games.", eventName)
 
 	responseMsg, err := t.Bot.Reply(c.Message(), body, telebot.NoPreview)
 	if err != nil {
@@ -148,7 +158,10 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		Chat: c.Chat(),
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
-		log.Println("Failed to edit message")
+		log.Println("Failed to edit message", err)
+		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+			return c.Respond()
+		}
 		return c.Reply("Failed to edit message event: " + err.Error())
 	}
 
@@ -202,7 +215,11 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 		Chat: c.Chat(),
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
-		log.Println("Failed to edit message")
+		log.Println("Failed to edit message", err)
+		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+			return c.Respond()
+		}
+
 		return c.Reply("Failed to edit message event: " + err.Error())
 	}
 
@@ -248,7 +265,10 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 		Chat: c.Chat(),
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
-		log.Println("Failed to edit message")
+		log.Println("Failed to edit message", err)
+		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+			return c.Respond()
+		}
 		return c.Reply("Failed to edit message event: " + err.Error())
 	}
 
@@ -294,7 +314,10 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 		Chat: c.Chat(),
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
-		log.Println("Failed to edit message")
+		log.Println("Failed to edit message", err)
+		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+			return c.Respond()
+		}
 		return c.Reply("Failed to edit message event: " + err.Error())
 	}
 

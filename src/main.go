@@ -98,8 +98,9 @@ func main() {
 
 	log.Println("Bot started.")
 
+	bot.Handle("/start", telegram.Start)
+	bot.Handle("/help", telegram.Start)
 	bot.Handle("/create", telegram.CreateGame)
-
 	bot.Handle("/add_game", telegram.AddGame)
 
 	bot.Handle(telebot.OnText, func(c telebot.Context) error {
