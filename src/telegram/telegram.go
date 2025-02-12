@@ -386,7 +386,6 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 		return c.Reply("Failed to edit message event: " + err.Error())
 	}
 
-	// Implement logic to add user to participants table here
 	return c.Respond()
 }
 
@@ -435,6 +434,5 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 		return c.Reply("Failed to edit message event: " + err.Error())
 	}
 
-	// Implement logic to add user to participants table here
 	return c.Respond()
 }
