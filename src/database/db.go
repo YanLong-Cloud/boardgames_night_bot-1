@@ -266,6 +266,32 @@ func (d *Database) UpdateBoardGamePlayerNumber(messageID int64, maxPlayers int) 
 	return nil
 }
 
+func (d *Database) UpdateBoardGameBGGInfo(messageID int64, maxPlayers int, bggID *int64, bggName, bggUrl *string) error {
+	var boardGameID int64
+
+	query := `UPDATE boardgames 
+	SET 
+	max_players = @max_players,
+	bgg_id = @bgg_id,
+	bgg_name = @bgg_name,
+	bgg_url = @bgg_url
+	WHERE message_id = @message_id RETURNING id;`
+
+	if err := d.db.QueryRow(query,
+		NamedArgs(map[string]any{
+			"max_players": maxPlayers,
+			"message_id":  messageID,
+			"bgg_id":      bggID,
+			"bgg_name":    bggName,
+			"bgg_url":     bggUrl,
+		})...,
+	).Scan(&boardGameID); err != nil {
+		return ParseError(err)
+	}
+
+	return nil
+}
+
 func (d *Database) InsertParticipant(eventID int64, boardgameID, userID int64, userName string) (int64, error) {
 	var participantID int64
 	query := `INSERT INTO participants (event_id, boardgame_id, user_id, user_name) VALUES (@event_id, @boardgame_id, @user_id, @user_name) RETURNING id;`

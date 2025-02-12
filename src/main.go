@@ -108,7 +108,7 @@ func main() {
 			return nil
 		}
 
-		return telegram.UpdateGameNumberOfPlayer(c)
+		return telegram.UpdateGameDispatcher(c)
 	})
 
 	bot.Handle(telebot.OnCallback, func(c telebot.Context) error {

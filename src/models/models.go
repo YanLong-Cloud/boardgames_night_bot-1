@@ -2,6 +2,9 @@ package models
 
 import (
 	"fmt"
+	"net/url"
+	"regexp"
+	"strconv"
 	"time"
 
 	"gopkg.in/telebot.v3"
@@ -89,4 +92,27 @@ func (e Event) FormatMsg() (string, *telebot.ReplyMarkup) {
 	}
 
 	return msg, markup
+}
+
+func ExtractBoardGameID(inputURL string) (int64, bool) {
+	parsedURL, err := url.Parse(inputURL)
+	if err != nil {
+		return 0, false
+	}
+
+	// Ensure the scheme is HTTPS and the host is correct
+	if parsedURL.Scheme != "https" || parsedURL.Host != "boardgamegeek.com" {
+		return 0, false
+	}
+
+	// Define regex to extract the ID
+	pattern := `^/boardgame/(\d+)/[a-zA-Z0-9-]+$`
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(parsedURL.Path)
+
+	if len(matches) > 1 {
+		id, err := strconv.ParseInt(matches[1], 10, 64)
+		return id, err == nil
+	}
+	return 0, false
 }

@@ -79,6 +79,32 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 	return err
 }
 
+func (t Telegram) extractGameInfo(ctx context.Context, id int64, gameName string) (*int, *string, *string, error) {
+	var err error
+	var bgUrl, bgName *string
+	var maxPlayers *int
+	url := fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", id)
+	bgUrl = &url
+
+	var things []gobgg.ThingResult
+
+	if things, err = t.BGG.GetThings(ctx, gobgg.GetThingIDs(id)); err != nil {
+		log.Printf("Failed to get game %d: %v", id, err)
+		return nil, nil, nil, err
+	}
+
+	if len(things) > 0 {
+		maxPlayers = &things[0].MaxPlayers
+		if things[0].Name != "" {
+			bgName = &things[0].Name
+		} else {
+			bgName = &gameName
+		}
+	}
+
+	return maxPlayers, bgName, bgUrl, nil
+}
+
 func (t Telegram) AddGame(c telebot.Context) error {
 	var err error
 	log.Println("User requested to add a game.")
@@ -179,7 +205,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		link = fmt.Sprintf(", <a href='%s'>%s</a>", *bgUrl, *bgName)
 	}
 
-	message := fmt.Sprintf("Game <b>%s</b>%s added! (1/%d players).\nReply to this message with the max number of player to update (default %d)\nClick button to join.", gameName, link, maxPlayers, maxPlayers)
+	message := fmt.Sprintf("Game <b>%s</b>%s added! (1/%d players).\nReply to this message with the max number of player to update (default %d)\nYou can also send me the https://boardgamegeek.com/ link to update the game info.\nClick button to join.", gameName, link, maxPlayers, maxPlayers)
 
 	responseMsg, err := t.Bot.Reply(
 		c.Message(),
@@ -199,6 +225,18 @@ func (t Telegram) AddGame(c telebot.Context) error {
 	return c.Respond()
 }
 
+func (t Telegram) UpdateGameDispatcher(c telebot.Context) error {
+	if c.Message().ReplyTo == nil {
+		return nil
+	}
+
+	if strings.HasPrefix(c.Text(), "https://boardgamegeek.com/boardgame/") {
+		return t.UpdateGameBGGInfo(c)
+	}
+
+	return t.UpdateGameNumberOfPlayer(c)
+}
+
 func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 	var err error
 	chatID := c.Chat().ID
@@ -215,6 +253,62 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 	if err = t.DB.UpdateBoardGamePlayerNumber(int64(messageID), int(maxPlayers)); err != nil {
 		if errors.Is(err, database.ErrNoRows) {
 			return c.Reply("Game not found. You are trying to update the number of players of a game that does not exist. You are probably commenting on the wrong message.")
+		}
+
+		log.Println("Failed to update game:", err)
+		return c.Reply("Failed to update game: " + err.Error())
+	}
+
+	var event *models.Event
+
+	if event, err = t.DB.SelectEvent(chatID); err != nil {
+		log.Println("Failed to add game:", err)
+		return c.Reply("Event not found in the db " + err.Error())
+	}
+
+	body, markup := event.FormatMsg()
+
+	_, err = t.Bot.Edit(&telebot.Message{
+		ID:   int(*event.MessageID),
+		Chat: c.Chat(),
+	}, body, markup, telebot.NoPreview)
+	if err != nil {
+		log.Println("Failed to edit message", err)
+		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+			return c.Respond()
+		}
+
+		return c.Reply("Failed to edit message event: " + err.Error())
+	}
+
+	return c.Reply("Game updated")
+}
+
+func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
+	var err error
+	chatID := c.Chat().ID
+	messageID := c.Message().ReplyTo.ID
+	bggURL := strings.Trim(c.Text(), " ")
+
+	var valid bool
+	var id int64
+	if id, valid = models.ExtractBoardGameID(bggURL); !valid {
+		return c.Reply("Invalid BGG URL")
+	}
+
+	ctx := context.Background()
+	var maxPlayers *int
+	var bgName, bgUrl *string
+
+	if maxPlayers, bgName, bgUrl, err = t.extractGameInfo(ctx, id, "old name"); err != nil {
+		return c.Reply("Failed to get game info: " + err.Error())
+	}
+
+	log.Printf("Updating game message id: %d with number of players: %d", messageID, maxPlayers)
+
+	if err = t.DB.UpdateBoardGameBGGInfo(int64(messageID), *maxPlayers, &id, bgName, bgUrl); err != nil {
+		if errors.Is(err, database.ErrNoRows) {
+			return c.Reply("Game not found. You are trying to update the information of a game that does not exist. You are probably commenting on the wrong message.")
 		}
 
 		log.Println("Failed to update game:", err)
