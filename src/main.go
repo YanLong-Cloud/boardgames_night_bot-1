@@ -37,6 +37,8 @@ func InitHealthCheck(url string) {
 		return
 	}
 
+	defer callEndpoint(url)()
+
 	c := cron.New()
 	_, err := c.AddFunc("@hourly", callEndpoint(url))
 	if err != nil {
