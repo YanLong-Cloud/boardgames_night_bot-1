@@ -1,0 +1,30 @@
+Welcome = "Welcome to Boardgame Night Bot! 🎲\nWe are here to help you organize your boardgame night.\nUsage:\nUse /create [event name] to create a new event.\nUse /add_game [game name] to add games to the event.\nUse /language [lan] to set the language of the bot.\nClick on the buttons to join or leave a game.\nHave fun! 🎉"
+
+Usage = "Usage: {{.Command}} {{.Example}}"
+
+EventName = "event name"
+GameName = "game name"
+
+FailedToCreateEvent = "Failed to create event. Please try again."
+FailedToAddGame = "Failed to add game. Please try again."
+FailedToUpdateMessageEvent = "Failed to update message. Please try again."
+FailedToUpdateGame = "Failed to update game. Please try again."
+FailedToGetGameInfo = "Failed to get game info from BoardGameGeek. Please try again."
+FailedToSetLanguage = "Failed to set language. Please try again."
+FailedToAddPlayer = "Failed to add player. Please try again."
+FailedToRemovePlayer = "Failed to remove player. Please try again."
+
+InvalidNumberOfPlayers = "Invalid number of players. Please try again."
+InvalidBggURL = "Invalid BoardGameGeek URL. Please try again."
+InvalidData = "Invalid data. Please try again."
+
+EventCreated = "📆 <b>{{.Name}}</b>\nNo game added yet please /add_game to add games."
+GameAdded = "Game <b>{{.Name}}</b>{{.Link}} added! (1/{{.MaxPlayers}} players).\nReply to this message with the max number of player to update (default {{.MaxPlayers}})\nYou can also send me the https://boardgamegeek.com/ link to update the game info.\nClick button to join."
+GameUpdated = "Game updated!"
+LanguageSet = "Language set to {{.Language}}."
+
+GameNotFound = "Game not found. You are trying to update the information of a game that does not exist. You are probably commenting on the wrong message."
+EventNotFound = "Event not found."
+
+Join = "Join {{.Name}}"
+UpdatedAt = "<i>Updated at {{.Time}}</i>\n/add_game to add more game"

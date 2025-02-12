@@ -10,7 +10,11 @@ require (
 	gopkg.in/telebot.v3 v3.3.8
 )
 
+require golang.org/x/text v0.21.0 // indirect
+
 require (
+	github.com/BurntSushi/toml v1.4.0
+	github.com/nicksnyder/go-i18n/v2 v2.5.1
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/net v0.28.0 // indirect
 )

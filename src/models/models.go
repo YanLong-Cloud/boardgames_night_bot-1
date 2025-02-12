@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"gopkg.in/telebot.v3"
 )
 
@@ -44,7 +45,7 @@ const (
 	Cancel    EventAction = "$cancel"
 )
 
-func (e Event) FormatMsg() (string, *telebot.ReplyMarkup) {
+func (e Event) FormatMsg(localizer *i18n.Localizer) (string, *telebot.ReplyMarkup) {
 	btns := []telebot.InlineButton{}
 
 	msg := "📆 <b>" + e.Name + "</b>\n\n"
@@ -66,8 +67,16 @@ func (e Event) FormatMsg() (string, *telebot.ReplyMarkup) {
 		}
 		msg += "\n"
 
+		joinT := localizer.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID: "Join",
+			},
+			TemplateData: map[string]string{
+				"Name": bg.Name,
+			},
+		})
 		btn := telebot.InlineButton{
-			Text:   "Join " + bg.Name,
+			Text:   joinT,
 			Unique: string(AddPlayer),
 			Data:   fmt.Sprintf("%d|%d", e.ID, bg.ID),
 		}
@@ -75,7 +84,15 @@ func (e Event) FormatMsg() (string, *telebot.ReplyMarkup) {
 		btns = append(btns, btn)
 
 	}
-	msg += fmt.Sprintf("<i>update at %s</i>\n/add_game to add more game", time.Now().Format("2006-01-02 15:04:05"))
+
+	msg += localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID: "UpdatedAt",
+		},
+		TemplateData: map[string]string{
+			"Time": time.Now().Format("2006-01-02 15:04:05"),
+		},
+	})
 
 	btn := telebot.InlineButton{
 		Text:   "Not coming",

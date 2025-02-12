@@ -11,10 +11,13 @@ import (
 
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/fzerorubigd/gobgg"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/robfig/cron/v3"
+	"golang.org/x/text/language"
 	"gopkg.in/telebot.v3"
 )
 
@@ -52,6 +55,11 @@ func InitHealthCheck(url string) {
 
 func main() {
 	var err error
+
+	bundle := i18n.NewBundle(language.English)
+	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+	bundle.MustLoadMessageFile("localization/active.en.toml")
+	bundle.MustLoadMessageFile("localization/active.it.toml")
 
 	if err = godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
@@ -91,9 +99,10 @@ func main() {
 	bgg := gobgg.NewBGGClient(gobgg.SetClient(client))
 
 	telegram := telegram.Telegram{
-		Bot: bot,
-		DB:  db,
-		BGG: bgg,
+		Bot:            bot,
+		DB:             db,
+		BGG:            bgg,
+		LanguageBundle: bundle,
 	}
 
 	log.Println("Bot started.")
@@ -102,6 +111,7 @@ func main() {
 	bot.Handle("/help", telegram.Start)
 	bot.Handle("/create", telegram.CreateGame)
 	bot.Handle("/add_game", telegram.AddGame)
+	bot.Handle("/language", telegram.SetLanguage)
 
 	bot.Handle(telebot.OnText, func(c telebot.Context) error {
 		if c.Message().ReplyTo == nil {

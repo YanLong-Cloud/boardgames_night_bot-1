@@ -37,6 +37,12 @@ func NamedArgs(arg map[string]any) []any {
 
 func (d *Database) CreateTables() {
 	queries := []string{
+		`CREATE TABLE IF NOT EXISTS chats (
+			chat_id INTEGER NOT NULL,
+			language TEXT NOT NULL DEFAULT 'en',
+			PRIMARY KEY(chat_id)
+			UNIQUE(chat_id) ON CONFLICT REPLACE
+		);`,
 		`CREATE TABLE IF NOT EXISTS events (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			chat_id INTEGER,
@@ -323,6 +329,41 @@ func (d *Database) RemoveParticipant(eventID int64, userID int64) error {
 	}
 
 	return nil
+}
+
+func (d *Database) InsertChat(chatID int64, language string) error {
+	query := `
+		INSERT INTO chats (chat_id, language) 
+		VALUES (@chat_id, @language)
+		ON CONFLICT (chat_id) 
+		DO UPDATE SET language = EXCLUDED.language;
+	`
+
+	if _, err := d.db.Exec(query,
+		NamedArgs(map[string]any{
+			"chat_id":  chatID,
+			"language": language,
+		})...,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Database) GetPreferredLanguage(chatID int64) string {
+	query := `SELECT language FROM chats WHERE chat_id = @chat_id;`
+
+	var language string
+	if err := d.db.QueryRow(query,
+		NamedArgs(map[string]any{
+			"chat_id": chatID,
+		})...,
+	).Scan(&language); err != nil {
+		return "en"
+	}
+
+	return language
 }
 
 func IntOrNil(i pgtype.Int8) *int64 {
