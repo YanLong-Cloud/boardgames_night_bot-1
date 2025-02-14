@@ -7,6 +7,7 @@ import (
 	"log"
 	"sort"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -44,7 +45,7 @@ func (d *Database) CreateTables() {
 			UNIQUE(chat_id) ON CONFLICT REPLACE
 		);`,
 		`CREATE TABLE IF NOT EXISTS events (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			id TEXT PRIMARY KEY,
 			chat_id INTEGER,
 			user_id INTEGER,
 			user_name TEXT,
@@ -89,12 +90,13 @@ func (d *Database) Close() {
 	log.Println("Database connection closed.")
 }
 
-func (d *Database) InsertEvent(chatID, userID int64, userName, name string, messageID *int64) (int64, error) {
-	var eventID int64
-	query := `INSERT INTO events (chat_id, user_id, user_name, name, message_id) VALUES (@chat_id, @user_id, @user_name, @name, @message_id) RETURNING id;`
+func (d *Database) InsertEvent(chatID, userID int64, userName, name string, messageID *int64) (string, error) {
+	var eventID string
+	query := `INSERT INTO events (id, chat_id, user_id, user_name, name, message_id) VALUES (@event_id, @chat_id, @user_id, @user_name, @name, @message_id) RETURNING id;`
 
 	if err := d.db.QueryRow(query,
 		NamedArgs(map[string]any{
+			"event_id":   uuid.New().String(),
 			"chat_id":    chatID,
 			"user_id":    userID,
 			"user_name":  userName,
@@ -102,7 +104,7 @@ func (d *Database) InsertEvent(chatID, userID int64, userName, name string, mess
 			"message_id": messageID,
 		})...,
 	).Scan(&eventID); err != nil {
-		return 0, err
+		return "", err
 	}
 
 	return eventID, nil
@@ -127,8 +129,33 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 	LEFT JOIN boardgames b ON e.id = b.event_id
 	LEFT JOIN participants p ON b.id = p.boardgame_id
 	WHERE e.id = (SELECT MAX(id) FROM events WHERE chat_id = @chat_id LIMIT 1);`
+	return d.selectEventByQuery(query, map[string]any{"chat_id": chatID})
+}
 
-	rows, err := d.db.Query(query, NamedArgs(map[string]any{"chat_id": chatID})...)
+func (d *Database) SelectEventByEventID(eventID string) (*models.Event, error) {
+	query := `
+	SELECT 
+	e.id, 
+	e.name, 
+	e.message_id,
+	b.id,
+	b.name,
+	b.max_players,
+	b.bgg_id,
+	b.bgg_name,
+	b.bgg_url,
+	p.id,
+	p.user_id,
+	p.user_name
+	FROM events e
+	LEFT JOIN boardgames b ON e.id = b.event_id
+	LEFT JOIN participants p ON b.id = p.boardgame_id
+	WHERE e.id = (SELECT MAX(id) FROM events WHERE id = @id LIMIT 1);`
+	return d.selectEventByQuery(query, map[string]any{"id": eventID})
+}
+
+func (d *Database) selectEventByQuery(query string, args map[string]any) (*models.Event, error) {
+	rows, err := d.db.Query(query, NamedArgs(args)...)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +236,7 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 	return event, nil
 }
 
-func (d *Database) UpdateEventMessageID(eventID, messageID int64) error {
+func (d *Database) UpdateEventMessageID(eventID string, messageID int64) error {
 	query := `UPDATE events SET message_id = @message_id where id = @event_id;`
 
 	if _, err := d.db.Exec(query,
@@ -224,7 +251,7 @@ func (d *Database) UpdateEventMessageID(eventID, messageID int64) error {
 	return nil
 }
 
-func (d *Database) InsertBoardGame(eventID int64, name string, maxPlayers int, bggID *int64, bggName, bggUrl *string) (int64, error) {
+func (d *Database) InsertBoardGame(eventID string, name string, maxPlayers int, bggID *int64, bggName, bggUrl *string) (int64, error) {
 	var boardGameID int64
 	query := `INSERT INTO boardgames (event_id, name, max_players, bgg_id, bgg_name, bgg_url) VALUES (@event_id, @name, @max_players, @bgg_id, @bgg_name, @bgg_url) RETURNING id;`
 
@@ -302,7 +329,7 @@ func (d *Database) UpdateBoardGameBGGInfo(messageID int64, maxPlayers int, bggID
 	return nil
 }
 
-func (d *Database) InsertParticipant(eventID int64, boardgameID, userID int64, userName string) (int64, error) {
+func (d *Database) InsertParticipant(eventID string, boardgameID, userID int64, userName string) (int64, error) {
 	var participantID int64
 	query := `INSERT INTO participants (event_id, boardgame_id, user_id, user_name) VALUES (@event_id, @boardgame_id, @user_id, @user_name) RETURNING id;`
 
@@ -320,7 +347,7 @@ func (d *Database) InsertParticipant(eventID int64, boardgameID, userID int64, u
 	return participantID, nil
 }
 
-func (d *Database) RemoveParticipant(eventID int64, userID int64) error {
+func (d *Database) RemoveParticipant(eventID string, userID int64) error {
 	query := `DELETE FROM participants WHERE event_id = @event_id AND user_id = @user_id;`
 
 	if _, err := d.db.Exec(query,

@@ -4,6 +4,7 @@ import (
 	"boardgame-night-bot/src/database"
 	"boardgame-night-bot/src/models"
 	"boardgame-night-bot/src/telegram"
+	"boardgame-night-bot/src/web"
 	"log"
 	"net/http"
 	"os"
@@ -73,6 +74,8 @@ func main() {
 	healthCheckUrl := os.Getenv("HEALTH_CHECK_URL")
 	InitHealthCheck(healthCheckUrl)
 
+	baseUrl := os.Getenv("BASE_URL")
+
 	db := database.NewDatabase()
 
 	defer db.Close()
@@ -103,6 +106,7 @@ func main() {
 		DB:             db,
 		BGG:            bgg,
 		LanguageBundle: bundle,
+		BaseUrl:        baseUrl,
 	}
 
 	log.Println("Bot started.")
@@ -138,5 +142,16 @@ func main() {
 		return c.Reply("Invalid action")
 	})
 
-	bot.Start()
+	go func() {
+		log.Println("Server started.")
+		web.StartServer(8080, db)
+		log.Println("Server stopped.")
+	}()
+	go func() {
+		log.Println("Bot started.")
+		bot.Start()
+		log.Println("Bot stopped.")
+	}()
+
+	select {}
 }
