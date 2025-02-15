@@ -42,12 +42,17 @@ func (t Controller) Localizer(chatID int64) *i18n.Localizer {
 }
 
 func (c *Controller) InjectRoute() {
-	c.Router.GET("/events/:event_id", c.Index)
+	c.Router.GET("/", c.Index)
+	c.Router.GET("/events/:event_id", c.Event)
 	c.Router.POST("/events/:event_id/add-game", c.AddGame)
 	c.Router.POST("/events/:event_id/join", c.AddPlayer)
 }
 
 func (c *Controller) Index(ctx *gin.Context) {
+	ctx.HTML(http.StatusOK, "index", nil)
+}
+
+func (c *Controller) Event(ctx *gin.Context) {
 	var err error
 	eventID := ctx.Param("event_id")
 
@@ -65,7 +70,7 @@ func (c *Controller) Index(ctx *gin.Context) {
 	}
 
 	// serve an html file
-	ctx.HTML(http.StatusOK, "index", gin.H{
+	ctx.HTML(http.StatusOK, "event", gin.H{
 		"Id":        event.ID,
 		"Title":     event.Name,
 		"Games":     event.BoardGames,
@@ -223,17 +228,10 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 
 func (c *Controller) AddPlayer(ctx *gin.Context) {
 	var err error
+	var event *models.Event
 	eventID := ctx.Param("event_id")
 
 	if !models.IsValidUUID(eventID) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
-		return
-	}
-
-	var event *models.Event
-
-	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
 	}
