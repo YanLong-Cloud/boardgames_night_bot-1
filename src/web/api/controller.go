@@ -154,6 +154,7 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 			}
 
 			if len(things) > 0 {
+				log.Printf("Game details of %s found", bg.Name)
 				if things[0].MaxPlayers > 0 {
 					bg.MaxPlayers = &things[0].MaxPlayers
 				}
@@ -166,6 +167,8 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 			}
 		}
 	}
+
+	log.Printf("Inserting %s in the db", bg.Name)
 
 	if _, err = c.DB.InsertBoardGame(event.ID, bg.Name, *bg.MaxPlayers, bgID, bgName, bgUrl); err != nil {
 		log.Println("Failed to insert board game:", err)
