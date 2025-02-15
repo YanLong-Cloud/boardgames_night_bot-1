@@ -144,7 +144,7 @@ func main() {
 
 	go func() {
 		log.Println("Server started.")
-		web.StartServer(8080, db)
+		web.StartServer(8080, db, bgg, bot, bundle, baseUrl)
 		log.Println("Server stopped.")
 	}()
 	go func() {

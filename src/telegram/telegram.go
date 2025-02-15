@@ -25,8 +25,6 @@ type Telegram struct {
 	BaseUrl        string
 }
 
-const MessageUnchangedErrorMessage = "specified new message content and reply markup are exactly the same as a current content and reply markup of the message"
-
 func DefineUsername(user *telebot.User) string {
 	if user.Username != "" {
 		return user.Username
@@ -75,6 +73,7 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 	userID := c.Sender().ID
 	userName := DefineUsername(c.Sender())
 	chatID := c.Chat().ID
+
 	var eventID string
 	log.Printf("Creating event: %s by user: %s (%d) in chat: %d", eventName, userName, userID, chatID)
 
@@ -107,32 +106,6 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 	}
 
 	return err
-}
-
-func (t Telegram) extractGameInfo(ctx context.Context, id int64, gameName string) (*int, *string, *string, error) {
-	var err error
-	var bgUrl, bgName *string
-	var maxPlayers *int
-	url := fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", id)
-	bgUrl = &url
-
-	var things []gobgg.ThingResult
-
-	if things, err = t.BGG.GetThings(ctx, gobgg.GetThingIDs(id)); err != nil {
-		log.Printf("Failed to get game %d: %v", id, err)
-		return nil, nil, nil, err
-	}
-
-	if len(things) > 0 {
-		maxPlayers = &things[0].MaxPlayers
-		if things[0].Name != "" {
-			bgName = &things[0].Name
-		} else {
-			bgName = &gameName
-		}
-	}
-
-	return maxPlayers, bgName, bgUrl, nil
 }
 
 func (t Telegram) AddGame(c telebot.Context) error {
@@ -243,7 +216,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 
@@ -346,7 +319,7 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 
@@ -374,7 +347,7 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 	var maxPlayers *int
 	var bgName, bgUrl *string
 
-	if maxPlayers, bgName, bgUrl, err = t.extractGameInfo(ctx, id, "old name"); err != nil {
+	if maxPlayers, bgName, bgUrl, err = models.ExtractGameInfo(ctx, t.BGG, id, "old name"); err != nil {
 		log.Printf("Failed to get game %d: %v", id, err)
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToGetGameInfo"}}))
 	}
@@ -410,7 +383,7 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 
@@ -501,7 +474,7 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 
@@ -555,7 +528,7 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 

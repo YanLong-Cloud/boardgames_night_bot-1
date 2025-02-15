@@ -1,12 +1,15 @@
 package models
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"regexp"
 	"strconv"
 	"time"
 
+	"github.com/fzerorubigd/gobgg"
 	"github.com/google/uuid"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"gopkg.in/telebot.v3"
@@ -32,6 +35,13 @@ type BoardGame struct {
 	BggID        *int64        `json:"bgg_id"`
 	BggName      *string       `json:"bgg_name"`
 	BggUrl       *string       `json:"bgg_url"`
+}
+
+type AddGame struct {
+	Name       string  `json:"name" form:"name" binding:"required"`
+	MaxPlayers *int    `json:"max_players" form:"max_players"`
+	BggUrl     *string `json:"bgg_url" form:"bgg_url"`
+	UserID     int64   `json:"user_id" form:"user_id"`
 }
 
 type Participant struct {
@@ -108,7 +118,7 @@ func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string) (string, *te
 	btn2 := telebot.InlineButton{
 		Text: "Web",
 		WebApp: &telebot.WebApp{
-			URL: fmt.Sprintf("%s/events/%s", baseUrl, e.ID),
+			URL: fmt.Sprintf("%s/events/%s/", baseUrl, e.ID),
 		},
 	}
 
@@ -150,3 +160,31 @@ func IsValidUUID(u string) bool {
 	_, err := uuid.Parse(u)
 	return err == nil
 }
+
+func ExtractGameInfo(ctx context.Context, BGG *gobgg.BGG, id int64, gameName string) (*int, *string, *string, error) {
+	var err error
+	var bgUrl, bgName *string
+	var maxPlayers *int
+	url := fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", id)
+	bgUrl = &url
+
+	var things []gobgg.ThingResult
+
+	if things, err = BGG.GetThings(ctx, gobgg.GetThingIDs(id)); err != nil {
+		log.Printf("Failed to get game %d: %v", id, err)
+		return nil, nil, nil, err
+	}
+
+	if len(things) > 0 {
+		maxPlayers = &things[0].MaxPlayers
+		if things[0].Name != "" {
+			bgName = &things[0].Name
+		} else {
+			bgName = &gameName
+		}
+	}
+
+	return maxPlayers, bgName, bgUrl, nil
+}
+
+const MessageUnchangedErrorMessage = "specified new message content and reply markup are exactly the same as a current content and reply markup of the message"

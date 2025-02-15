@@ -115,6 +115,7 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 	SELECT 
 	e.id, 
 	e.name, 
+	e.chat_id,
 	e.message_id,
 	b.id,
 	b.name,
@@ -137,6 +138,7 @@ func (d *Database) SelectEventByEventID(eventID string) (*models.Event, error) {
 	SELECT 
 	e.id, 
 	e.name, 
+	e.chat_id,
 	e.message_id,
 	b.id,
 	b.name,
@@ -175,6 +177,7 @@ func (d *Database) selectEventByQuery(query string, args map[string]any) (*model
 		if err := rows.Scan(
 			&event.ID,
 			&event.Name,
+			&event.ChatID,
 			&eventMessageID,
 			&boardGameID,
 			&boardGameName,
