@@ -44,6 +44,7 @@ func (t Controller) Localizer(chatID int64) *i18n.Localizer {
 func (c *Controller) InjectRoute() {
 	c.Router.GET("/events/:event_id", c.Index)
 	c.Router.POST("/events/:event_id/add-game", c.AddGame)
+	c.Router.POST("/events/:event_id/join", c.AddPlayer)
 }
 
 func (c *Controller) Index(ctx *gin.Context) {
@@ -90,7 +91,7 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		return
 	}
 
-	var bg models.AddGame
+	var bg models.AddGameRequest
 	if err = ctx.ShouldBind(&bg); err != nil {
 		log.Println("Failed to bind form:", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
@@ -218,6 +219,67 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		"Title": event.Name,
 		"Game":  game,
 	})
+}
+
+func (c *Controller) AddPlayer(ctx *gin.Context) {
+	var err error
+	eventID := ctx.Param("event_id")
+
+	if !models.IsValidUUID(eventID) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	var event *models.Event
+
+	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	var addPlayer models.AddPlayerRequest
+	if err = ctx.ShouldBindJSON(&addPlayer); err != nil {
+		log.Println("Failed to bind form:", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
+		return
+	}
+
+	if _, err = c.DB.InsertParticipant(eventID, addPlayer.GameID, addPlayer.UserID, addPlayer.UserName); err != nil {
+		log.Println("Failed to add user to participants table:", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
+		return
+	}
+
+	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid message ID"})
+		return
+	}
+
+	body, markup := event.FormatMsg(c.Localizer(event.ChatID), c.BaseUrl)
+
+	_, err = c.Bot.Edit(&telebot.Message{
+		ID: int(*event.MessageID),
+		Chat: &telebot.Chat{
+			ID: event.ChatID,
+		},
+	}, body, markup, telebot.NoPreview)
+	if err != nil {
+		log.Println("Failed to edit message", err)
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
+			log.Println("Failed because unchanged", err)
+		}
+
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Player added."})
 }
 
 func P(x string) *string {

@@ -119,7 +119,7 @@ func main() {
 
 	bot.Handle(telebot.OnText, func(c telebot.Context) error {
 		if c.Message().ReplyTo == nil {
-			return nil
+			return c.Respond()
 		}
 
 		return telegram.UpdateGameDispatcher(c)

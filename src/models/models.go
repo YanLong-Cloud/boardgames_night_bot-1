@@ -27,6 +27,12 @@ type Event struct {
 	BoardGames []BoardGame
 }
 
+type AddPlayerRequest struct {
+	GameID   int64  `json:"game_id" binding:"required"`
+	UserID   int64  `json:"user_id" binding:"required"`
+	UserName string `json:"user_name" binding:"required"`
+}
+
 type BoardGame struct {
 	ID           int64         `json:"id"`
 	Name         string        `json:"name"`
@@ -37,7 +43,7 @@ type BoardGame struct {
 	BggUrl       *string       `json:"bgg_url"`
 }
 
-type AddGame struct {
+type AddGameRequest struct {
 	Name       string  `json:"name" form:"name" binding:"required"`
 	MaxPlayers *int    `json:"max_players" form:"max_players"`
 	BggUrl     *string `json:"bgg_url" form:"bgg_url"`

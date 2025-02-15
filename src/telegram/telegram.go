@@ -83,16 +83,17 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 		return c.Reply(failedT)
 	}
 
-	body := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
-		DefaultMessage: &i18n.Message{
-			ID: "EventCreated",
-		},
-		TemplateData: map[string]string{
-			"Name": eventName,
-		},
-	})
+	var event *models.Event
 
-	responseMsg, err := t.Bot.Reply(c.Message(), body, telebot.NoPreview)
+	if event, err = t.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		failedT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToCreateEvent"}})
+		return c.Reply(failedT)
+	}
+
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl)
+
+	responseMsg, err := t.Bot.Reply(c.Message(), body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to create event:", err)
 		failedT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToCreateEvent"}})

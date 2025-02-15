@@ -47,6 +47,26 @@
             background: #0056b3;
         }
 
+        .join {
+            float: right;
+
+        }
+
+        // style a button
+        .join {
+            background-color: #4CAF50; /* Green */
+            border: none;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 12px;
+            padding: 10px 24px;
+        }
+
         #auth { max-width: 600px; margin: 0 auto; text-align: center; }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -57,6 +77,7 @@
     <div class="game-list">
         {{ range .Games }}
         <div class="game">
+            <button class="join" value="{{ .ID }}">join</button>
             <p>🎲  
                 {{ if .BggUrl }}
                 - <a href="{{ .BggUrl }}">{{ .BggName }}</a></p>
@@ -100,6 +121,42 @@
             document.getElementById("username").innerText = "guest";
             document.getElementById("auth").setAttribute("style", "display: none;");
         }
+
+        document.querySelectorAll(".join").forEach(button => {
+            button.addEventListener("click", function(event) {
+                const game_id = parseInt(event.target.getAttribute("value"), 10);
+
+                if (!user) {
+                    alert("Please login to join a game");
+                    return;
+                }
+                
+                fetch("{{ .Id }}/join", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ 
+                        game_id, 
+                        user_id: user.id,
+                        user_name: user.username || user.first_name,
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Success:", data);
+                    location.reload(); // Reload the page after successful request
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                });
+            });
+        });
     </script>
 </body>
 </html>
