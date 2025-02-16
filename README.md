@@ -30,7 +30,7 @@ To install the Boardgame Night Bot, follow these steps:
 
 ## NB
 
-You must register MiniApp url to the both fathers before using the bot.
+You must register MiniApp url to the bot fathers before using the bot.
 
 ## Usage
 
