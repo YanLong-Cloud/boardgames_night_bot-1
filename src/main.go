@@ -4,9 +4,11 @@ import (
 	"boardgame-night-bot/src/database"
 	"boardgame-night-bot/src/models"
 	"boardgame-night-bot/src/telegram"
+	"boardgame-night-bot/src/web"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"time"
@@ -70,8 +72,20 @@ func main() {
 		log.Fatal("TOKEN is not set in .env file")
 	}
 
+	botName := os.Getenv("BOT_NAME")
+	if botToken == "" {
+		log.Fatal("BOT_NAME is not set in .env file")
+	}
+
 	healthCheckUrl := os.Getenv("HEALTH_CHECK_URL")
 	InitHealthCheck(healthCheckUrl)
+
+	baseUrl := os.Getenv("BASE_URL")
+	portString := os.Getenv("PORT")
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		log.Fatal("PORT is not set in .env file")
+	}
 
 	db := database.NewDatabase()
 
@@ -103,6 +117,8 @@ func main() {
 		DB:             db,
 		BGG:            bgg,
 		LanguageBundle: bundle,
+		BaseUrl:        baseUrl,
+		BotName:        botName,
 	}
 
 	log.Println("Bot started.")
@@ -115,7 +131,7 @@ func main() {
 
 	bot.Handle(telebot.OnText, func(c telebot.Context) error {
 		if c.Message().ReplyTo == nil {
-			return nil
+			return c.Respond()
 		}
 
 		return telegram.UpdateGameDispatcher(c)
@@ -138,5 +154,16 @@ func main() {
 		return c.Reply("Invalid action")
 	})
 
-	bot.Start()
+	go func() {
+		log.Println("Server started.")
+		web.StartServer(port, db, bgg, bot, bundle, baseUrl, botName)
+		log.Println("Server stopped.")
+	}()
+	go func() {
+		log.Println("Bot started.")
+		bot.Start()
+		log.Println("Bot stopped.")
+	}()
+
+	select {}
 }

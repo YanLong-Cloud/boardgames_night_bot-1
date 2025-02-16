@@ -1,0 +1,54 @@
+{{ define "game_info" }}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Game.Name }} - Info</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        h1 { color: #333; text-align: center; }
+        .game-info { max-width: 600px; margin: 20px auto; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); }
+        .game-info a { text-decoration: none; color: #007bff; font-weight: bold; }
+        .game-info p { margin: 10px 0; }
+        .participants { margin-left: 20px; font-style: italic; color: #555; }
+        .back-button {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            text-align: center;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .back-button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🎲 {{ .Game.Name }}</h1>
+    
+    <div class="game-info">
+        <p><strong>Game:</strong> {{ .Game.Name }}</p>
+        {{ if .Game.BggUrl }}
+        <p><strong>More Info:</strong> <a href="{{ .Game.BggUrl }}" target="_blank">BoardGameGeek</a></p>
+        {{ end }}
+        <p><strong>Max Players:</strong> {{ .Game.MaxPlayers }}</p>
+        <p><strong>Participants:</strong></p>
+        <div class="participants">
+            {{ if .Game.Participants }}
+                {{ range .Game.Participants }}
+                <p>- {{ .UserName }}</p>
+                {{ end }}
+            {{ else }}
+                <p>- No participants yet</p>
+            {{ end }}
+        </div>
+    </div>
+    
+    <a href="/events/{{ .Id }}" class="back-button">⬅️ Back</a>
+</body>
+</html>
+{{ end }}

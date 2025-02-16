@@ -1,18 +1,24 @@
 package models
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"regexp"
 	"strconv"
 	"time"
 
+	"github.com/fzerorubigd/gobgg"
+	"github.com/google/uuid"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"gopkg.in/telebot.v3"
 )
 
+const BASE_URL = "https://3e52-2001-b07-5d31-6a42-7565-9d07-4a52-4352.ngrok-free.app"
+
 type Event struct {
-	ID         int64
+	ID         string
 	ChatID     int64
 	UserID     int64
 	UserName   string
@@ -21,20 +27,33 @@ type Event struct {
 	BoardGames []BoardGame
 }
 
+type AddPlayerRequest struct {
+	GameID   int64  `json:"game_id" binding:"required"`
+	UserID   int64  `json:"user_id" binding:"required"`
+	UserName string `json:"user_name" binding:"required"`
+}
+
 type BoardGame struct {
-	ID           int64
-	Name         string
-	MaxPlayers   int64
-	Participants []Participant
-	BggID        *int64
-	BggName      *string
-	BggUrl       *string
+	ID           int64         `json:"id"`
+	Name         string        `json:"name"`
+	MaxPlayers   int64         `json:"max_players"`
+	Participants []Participant `json:"participants"`
+	BggID        *int64        `json:"bgg_id"`
+	BggName      *string       `json:"bgg_name"`
+	BggUrl       *string       `json:"bgg_url"`
+}
+
+type AddGameRequest struct {
+	Name       string  `json:"name" form:"name" binding:"required"`
+	MaxPlayers *int    `json:"max_players" form:"max_players"`
+	BggUrl     *string `json:"bgg_url" form:"bgg_url"`
+	UserID     int64   `json:"user_id" form:"user_id"`
 }
 
 type Participant struct {
-	ID       int64
-	UserID   int64
-	UserName string
+	ID       int64  `json:"id"`
+	UserID   int64  `json:"user_id"`
+	UserName string `json:"user_name"`
 }
 
 // create enum with value add_player
@@ -45,7 +64,7 @@ const (
 	Cancel    EventAction = "$cancel"
 )
 
-func (e Event) FormatMsg(localizer *i18n.Localizer) (string, *telebot.ReplyMarkup) {
+func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string, botName string) (string, *telebot.ReplyMarkup) {
 	btns := []telebot.InlineButton{}
 
 	msg := "📆 <b>" + e.Name + "</b>\n\n"
@@ -78,7 +97,7 @@ func (e Event) FormatMsg(localizer *i18n.Localizer) (string, *telebot.ReplyMarku
 		btn := telebot.InlineButton{
 			Text:   joinT,
 			Unique: string(AddPlayer),
-			Data:   fmt.Sprintf("%d|%d", e.ID, bg.ID),
+			Data:   fmt.Sprintf("%s|%d", e.ID, bg.ID),
 		}
 
 		btns = append(btns, btn)
@@ -97,10 +116,27 @@ func (e Event) FormatMsg(localizer *i18n.Localizer) (string, *telebot.ReplyMarku
 	btn := telebot.InlineButton{
 		Text:   "Not coming",
 		Unique: string(Cancel),
-		Data:   fmt.Sprintf("%d", e.ID),
+		Data:   e.ID,
 	}
 
 	btns = append(btns, btn)
+
+	if e.ChatID > 0 {
+		btn2 := telebot.InlineButton{
+			Text: "Web",
+			WebApp: &telebot.WebApp{
+				URL: fmt.Sprintf("%s/events/%s/", baseUrl, e.ID),
+			},
+		}
+		btns = append(btns, btn2)
+	} else {
+		btn2 := telebot.InlineButton{
+			Text: "Web",
+			URL:  fmt.Sprintf("https://t.me/%s?start=%s", botName, e.ID),
+		}
+		btns = append(btns, btn2)
+
+	}
 
 	markup := &telebot.ReplyMarkup{}
 	markup.InlineKeyboard = [][]telebot.InlineButton{}
@@ -133,3 +169,36 @@ func ExtractBoardGameID(inputURL string) (int64, bool) {
 	}
 	return 0, false
 }
+
+func IsValidUUID(u string) bool {
+	_, err := uuid.Parse(u)
+	return err == nil
+}
+
+func ExtractGameInfo(ctx context.Context, BGG *gobgg.BGG, id int64, gameName string) (*int, *string, *string, error) {
+	var err error
+	var bgUrl, bgName *string
+	var maxPlayers *int
+	url := fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", id)
+	bgUrl = &url
+
+	var things []gobgg.ThingResult
+
+	if things, err = BGG.GetThings(ctx, gobgg.GetThingIDs(id)); err != nil {
+		log.Printf("Failed to get game %d: %v", id, err)
+		return nil, nil, nil, err
+	}
+
+	if len(things) > 0 {
+		maxPlayers = &things[0].MaxPlayers
+		if things[0].Name != "" {
+			bgName = &things[0].Name
+		} else {
+			bgName = &gameName
+		}
+	}
+
+	return maxPlayers, bgName, bgUrl, nil
+}
+
+const MessageUnchangedErrorMessage = "specified new message content and reply markup are exactly the same as a current content and reply markup of the message"

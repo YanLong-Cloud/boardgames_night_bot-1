@@ -22,9 +22,9 @@ type Telegram struct {
 	DB             *database.Database
 	BGG            *gobgg.BGG
 	LanguageBundle *i18n.Bundle
+	BaseUrl        string
+	BotName        string
 }
-
-const MessageUnchangedErrorMessage = "specified new message content and reply markup are exactly the same as a current content and reply markup of the message"
 
 func DefineUsername(user *telebot.User) string {
 	if user.Username != "" {
@@ -44,14 +44,50 @@ func (t Telegram) Localizer(c telebot.Context) *i18n.Localizer {
 }
 
 func (t Telegram) Start(c telebot.Context) error {
-	welcomeT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
-		DefaultMessage: &i18n.Message{
-			ID: "Welcome",
-		},
-		TemplateData: map[string]string{},
-	})
+	var err error
+	args := c.Args()
 
-	return c.Send(welcomeT)
+	if len(args) < 1 {
+		welcomeT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID: "Welcome",
+			},
+			TemplateData: map[string]string{},
+		})
+
+		return c.Send(welcomeT)
+	}
+
+	eventID := args[0]
+	var event *models.Event
+	if event, err = t.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		return c.Send(t.Localizer(c).MustLocalizeMessage(&i18n.Message{ID: "EventNotFound"}))
+	}
+
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		return c.Send(t.Localizer(c).MustLocalizeMessage(&i18n.Message{ID: "EventNotFound"}))
+	}
+
+	open := telebot.InlineButton{
+		Text: "Web",
+		WebApp: &telebot.WebApp{
+			URL: fmt.Sprintf("%s/events/%s/", t.BaseUrl, eventID),
+		},
+	}
+	markup := &telebot.ReplyMarkup{}
+	markup.InlineKeyboard = [][]telebot.InlineButton{{open}}
+
+	openT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID: "Open",
+		},
+		TemplateData: map[string]string{
+			"Name": event.Name,
+		},
+	})
+	return c.Send(openT, markup)
 }
 
 func (t Telegram) CreateGame(c telebot.Context) error {
@@ -74,7 +110,8 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 	userID := c.Sender().ID
 	userName := DefineUsername(c.Sender())
 	chatID := c.Chat().ID
-	var eventID int64
+
+	var eventID string
 	log.Printf("Creating event: %s by user: %s (%d) in chat: %d", eventName, userName, userID, chatID)
 
 	if eventID, err = t.DB.InsertEvent(chatID, userID, userName, eventName, nil); err != nil {
@@ -83,16 +120,17 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 		return c.Reply(failedT)
 	}
 
-	body := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
-		DefaultMessage: &i18n.Message{
-			ID: "EventCreated",
-		},
-		TemplateData: map[string]string{
-			"Name": eventName,
-		},
-	})
+	var event *models.Event
 
-	responseMsg, err := t.Bot.Reply(c.Message(), body, telebot.NoPreview)
+	if event, err = t.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		failedT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToCreateEvent"}})
+		return c.Reply(failedT)
+	}
+
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
+
+	responseMsg, err := t.Bot.Reply(c.Message(), body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to create event:", err)
 		failedT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToCreateEvent"}})
@@ -106,32 +144,6 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 	}
 
 	return err
-}
-
-func (t Telegram) extractGameInfo(ctx context.Context, id int64, gameName string) (*int, *string, *string, error) {
-	var err error
-	var bgUrl, bgName *string
-	var maxPlayers *int
-	url := fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", id)
-	bgUrl = &url
-
-	var things []gobgg.ThingResult
-
-	if things, err = t.BGG.GetThings(ctx, gobgg.GetThingIDs(id)); err != nil {
-		log.Printf("Failed to get game %d: %v", id, err)
-		return nil, nil, nil, err
-	}
-
-	if len(things) > 0 {
-		maxPlayers = &things[0].MaxPlayers
-		if things[0].Name != "" {
-			bgName = &things[0].Name
-		} else {
-			bgName = &gameName
-		}
-	}
-
-	return maxPlayers, bgName, bgUrl, nil
 }
 
 func (t Telegram) AddGame(c telebot.Context) error {
@@ -234,7 +246,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c))
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
@@ -242,7 +254,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 
@@ -337,7 +349,7 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c))
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
@@ -345,7 +357,7 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 
@@ -373,7 +385,7 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 	var maxPlayers *int
 	var bgName, bgUrl *string
 
-	if maxPlayers, bgName, bgUrl, err = t.extractGameInfo(ctx, id, "old name"); err != nil {
+	if maxPlayers, bgName, bgUrl, err = models.ExtractGameInfo(ctx, t.BGG, id, "old name"); err != nil {
 		log.Printf("Failed to get game %d: %v", id, err)
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToGetGameInfo"}}))
 	}
@@ -401,7 +413,7 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c))
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
@@ -409,7 +421,7 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 
@@ -466,9 +478,9 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "InvalidData"}}))
 	}
 
-	eventID, err1 := strconv.ParseInt(parts[1], 10, 64)
+	eventID := parts[1]
 	boardGameID, err2 := strconv.ParseInt(parts[2], 10, 64)
-	if err1 != nil || err2 != nil {
+	if !models.IsValidUUID(eventID) || err2 != nil {
 		log.Println("Invalid parsed id:", data)
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "InvalidData"}}))
 	}
@@ -493,14 +505,14 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c))
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
 		Chat: c.Chat(),
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 
@@ -521,8 +533,8 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "InvalidData"}}))
 	}
 
-	eventID, err1 := strconv.ParseInt(parts[1], 10, 64)
-	if err1 != nil {
+	eventID := parts[1]
+	if !models.IsValidUUID(eventID) {
 		log.Println("Invalid parsed id:", data)
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "InvalidData"}}))
 	}
@@ -547,14 +559,14 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c))
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
 		Chat: c.Chat(),
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
 		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), MessageUnchangedErrorMessage) {
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			return c.Respond()
 		}
 

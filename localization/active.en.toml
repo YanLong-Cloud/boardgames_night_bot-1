@@ -18,7 +18,6 @@ InvalidNumberOfPlayers = "Invalid number of players. Please try again."
 InvalidBggURL = "Invalid BoardGameGeek URL. Please try again."
 InvalidData = "Invalid data. Please try again."
 
-EventCreated = "📆 <b>{{.Name}}</b>\nNo game added yet please /add_game to add games."
 GameAdded = "Game <b>{{.Name}}</b>{{.Link}} added! (1/{{.MaxPlayers}} players).\nReply to this message with the max number of player to update (default {{.MaxPlayers}})\nYou can also send me the https://boardgamegeek.com/ link to update the game info.\nClick button to join."
 GameUpdated = "Game updated!"
 LanguageSet = "Language set to {{.Language}}."
@@ -28,3 +27,15 @@ EventNotFound = "Event not found."
 
 Join = "Join {{.Name}}"
 UpdatedAt = "<i>Updated at {{.Time}}</i>\n/add_game to add more game"
+
+Open = "Click here to open event {{.Name }} settings and join."
+
+WebNoParticipants = "No participants yet."
+WebPlayers = "players"
+WebJoin = "Join"
+WebAddGame = "Add game"
+WebAddNewGame = "Add a new game"
+WebWelcome = "Welcome"
+WebGameName = "Game Name"
+WebMaxPlayers = "Max players"
+WebUpdatedAt = "Updated at {{.Time}}"
