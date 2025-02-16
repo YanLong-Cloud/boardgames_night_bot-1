@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"time"
@@ -80,6 +81,11 @@ func main() {
 	InitHealthCheck(healthCheckUrl)
 
 	baseUrl := os.Getenv("BASE_URL")
+	portString := os.Getenv("PORT")
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		log.Fatal("PORT is not set in .env file")
+	}
 
 	db := database.NewDatabase()
 
@@ -150,7 +156,7 @@ func main() {
 
 	go func() {
 		log.Println("Server started.")
-		web.StartServer(8080, db, bgg, bot, bundle, baseUrl, botName)
+		web.StartServer(port, db, bgg, bot, bundle, baseUrl, botName)
 		log.Println("Server stopped.")
 	}()
 	go func() {
