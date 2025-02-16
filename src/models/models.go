@@ -64,7 +64,7 @@ const (
 	Cancel    EventAction = "$cancel"
 )
 
-func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string) (string, *telebot.ReplyMarkup) {
+func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string, botName string) (string, *telebot.ReplyMarkup) {
 	btns := []telebot.InlineButton{}
 
 	msg := "📆 <b>" + e.Name + "</b>\n\n"
@@ -121,14 +121,22 @@ func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string) (string, *te
 
 	btns = append(btns, btn)
 
-	btn2 := telebot.InlineButton{
-		Text: "Web",
-		WebApp: &telebot.WebApp{
-			URL: fmt.Sprintf("%s/events/%s/", baseUrl, e.ID),
-		},
-	}
+	if e.ChatID > 0 {
+		btn2 := telebot.InlineButton{
+			Text: "Web",
+			WebApp: &telebot.WebApp{
+				URL: fmt.Sprintf("%s/events/%s/", baseUrl, e.ID),
+			},
+		}
+		btns = append(btns, btn2)
+	} else {
+		btn2 := telebot.InlineButton{
+			Text: "Web",
+			URL:  fmt.Sprintf("https://t.me/%s?start=%s", botName, e.ID),
+		}
+		btns = append(btns, btn2)
 
-	btns = append(btns, btn2)
+	}
 
 	markup := &telebot.ReplyMarkup{}
 	markup.InlineKeyboard = [][]telebot.InlineButton{}

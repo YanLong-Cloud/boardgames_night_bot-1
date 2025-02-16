@@ -71,6 +71,11 @@ func main() {
 		log.Fatal("TOKEN is not set in .env file")
 	}
 
+	botName := os.Getenv("BOT_NAME")
+	if botToken == "" {
+		log.Fatal("BOT_NAME is not set in .env file")
+	}
+
 	healthCheckUrl := os.Getenv("HEALTH_CHECK_URL")
 	InitHealthCheck(healthCheckUrl)
 
@@ -107,6 +112,7 @@ func main() {
 		BGG:            bgg,
 		LanguageBundle: bundle,
 		BaseUrl:        baseUrl,
+		BotName:        botName,
 	}
 
 	log.Println("Bot started.")
@@ -144,7 +150,7 @@ func main() {
 
 	go func() {
 		log.Println("Server started.")
-		web.StartServer(8080, db, bgg, bot, bundle, baseUrl)
+		web.StartServer(8080, db, bgg, bot, bundle, baseUrl, botName)
 		log.Println("Server stopped.")
 	}()
 	go func() {

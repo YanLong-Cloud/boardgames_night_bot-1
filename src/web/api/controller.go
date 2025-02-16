@@ -24,9 +24,10 @@ type Controller struct {
 	Bot            *telebot.Bot
 	LanguageBundle *i18n.Bundle
 	BaseUrl        string
+	BotName        string
 }
 
-func NewController(router *gin.RouterGroup, db *database.Database, bgg *gobgg.BGG, bot *telebot.Bot, LanguageBundle *i18n.Bundle, baseUrl string) *Controller {
+func NewController(router *gin.RouterGroup, db *database.Database, bgg *gobgg.BGG, bot *telebot.Bot, LanguageBundle *i18n.Bundle, baseUrl, botName string) *Controller {
 	return &Controller{
 		Router:         router,
 		DB:             db,
@@ -34,6 +35,7 @@ func NewController(router *gin.RouterGroup, db *database.Database, bgg *gobgg.BG
 		Bot:            bot,
 		LanguageBundle: LanguageBundle,
 		BaseUrl:        baseUrl,
+		BotName:        botName,
 	}
 }
 
@@ -212,7 +214,7 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		return
 	}
 
-	body, markup := event.FormatMsg(c.Localizer(event.ChatID), c.BaseUrl)
+	body, markup := event.FormatMsg(c.Localizer(event.ChatID), c.BaseUrl, c.BotName)
 
 	_, err = c.Bot.Edit(&telebot.Message{
 		ID: int(*event.MessageID),
@@ -279,7 +281,7 @@ func (c *Controller) AddPlayer(ctx *gin.Context) {
 		return
 	}
 
-	body, markup := event.FormatMsg(c.Localizer(event.ChatID), c.BaseUrl)
+	body, markup := event.FormatMsg(c.Localizer(event.ChatID), c.BaseUrl, c.BotName)
 
 	_, err = c.Bot.Edit(&telebot.Message{
 		ID: int(*event.MessageID),

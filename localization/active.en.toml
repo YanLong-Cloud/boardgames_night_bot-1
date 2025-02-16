@@ -28,6 +28,8 @@ EventNotFound = "Event not found."
 Join = "Join {{.Name}}"
 UpdatedAt = "<i>Updated at {{.Time}}</i>\n/add_game to add more game"
 
+Open = "Click here to open event {{.Name }} settings and join."
+
 WebNoParticipants = "No participants yet."
 WebPlayers = "players"
 WebJoin = "Join"

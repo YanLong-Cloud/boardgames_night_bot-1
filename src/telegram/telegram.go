@@ -23,6 +23,7 @@ type Telegram struct {
 	BGG            *gobgg.BGG
 	LanguageBundle *i18n.Bundle
 	BaseUrl        string
+	BotName        string
 }
 
 func DefineUsername(user *telebot.User) string {
@@ -43,14 +44,50 @@ func (t Telegram) Localizer(c telebot.Context) *i18n.Localizer {
 }
 
 func (t Telegram) Start(c telebot.Context) error {
-	welcomeT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
-		DefaultMessage: &i18n.Message{
-			ID: "Welcome",
-		},
-		TemplateData: map[string]string{},
-	})
+	var err error
+	args := c.Args()
 
-	return c.Send(welcomeT)
+	if len(args) < 1 {
+		welcomeT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID: "Welcome",
+			},
+			TemplateData: map[string]string{},
+		})
+
+		return c.Send(welcomeT)
+	}
+
+	eventID := args[0]
+	var event *models.Event
+	if event, err = t.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		return c.Send(t.Localizer(c).MustLocalizeMessage(&i18n.Message{ID: "EventNotFound"}))
+	}
+
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		return c.Send(t.Localizer(c).MustLocalizeMessage(&i18n.Message{ID: "EventNotFound"}))
+	}
+
+	open := telebot.InlineButton{
+		Text: "Web",
+		WebApp: &telebot.WebApp{
+			URL: fmt.Sprintf("%s/events/%s/", t.BaseUrl, eventID),
+		},
+	}
+	markup := &telebot.ReplyMarkup{}
+	markup.InlineKeyboard = [][]telebot.InlineButton{{open}}
+
+	openT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID: "Open",
+		},
+		TemplateData: map[string]string{
+			"Name": event.Name,
+		},
+	})
+	return c.Send(openT, markup)
 }
 
 func (t Telegram) CreateGame(c telebot.Context) error {
@@ -91,7 +128,7 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 		return c.Reply(failedT)
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl)
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 
 	responseMsg, err := t.Bot.Reply(c.Message(), body, markup, telebot.NoPreview)
 	if err != nil {
@@ -209,7 +246,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl)
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
@@ -312,7 +349,7 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl)
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
@@ -376,7 +413,7 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl)
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
@@ -468,7 +505,7 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl)
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
 		Chat: c.Chat(),
@@ -522,7 +559,7 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
 
-	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl)
+	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 	_, err = t.Bot.Edit(&telebot.Message{
 		ID:   int(*event.MessageID),
 		Chat: c.Chat(),
