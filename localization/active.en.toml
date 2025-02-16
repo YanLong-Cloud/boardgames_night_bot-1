@@ -27,3 +27,13 @@ EventNotFound = "Event not found."
 
 Join = "Join {{.Name}}"
 UpdatedAt = "<i>Updated at {{.Time}}</i>\n/add_game to add more game"
+
+WebNoParticipants = "No participants yet."
+WebPlayers = "players"
+WebJoin = "Join"
+WebAddGame = "Add game"
+WebAddNewGame = "Add a new game"
+WebWelcome = "Welcome"
+WebGameName = "Game Name"
+WebMaxPlayers = "Max players"
+WebUpdatedAt = "Updated at {{.Time}}"

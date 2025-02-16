@@ -52,9 +52,8 @@
 
         }
 
-        // style a button
         .join {
-            background-color: #4CAF50; /* Green */
+            background-color: #4CAF50;
             border: none;
             color: white;
             text-align: center;
@@ -74,22 +73,25 @@
 <body>
     <h1>📆 {{ .Title }}</h1>
     
+    {{ $join := .Join }}
+    {{ $players := .Players }}
+    {{ $noParticipants := .NoParticipants }}
     <div class="game-list">
         {{ range .Games }}
         <div class="game">
-            <button class="join" value="{{ .ID }}">join</button>
+            <button class="join" value="{{ .ID }}">{{ $join }}</button>
             <p>🎲  
                 {{ if .BggUrl }}
                 - <a href="{{ .BggUrl }}">{{ .BggName }}</a></p>
                 {{ end }}
-            <p><strong>[{{ .Name }}]</strong> ({{ len .Participants }}/{{ .MaxPlayers }} players)</p>
+            <p><strong>[{{ .Name }}]</strong> ({{ len .Participants }}/{{ .MaxPlayers }} {{ $players }})</p>
             <div class="participants">
                 {{ if .Participants }}
                     {{ range .Participants }}
                     <p>- {{ .UserName }}</p>
                     {{ end }}
                 {{ else }}
-                    <p>- No participants yet</p>
+                    <p>- {{ $noParticipants }}</p>
                 {{ end }}
             </div>
         </div>
@@ -97,29 +99,32 @@
     </div>
     
     <div id="auth">
-        <p>Welcome <span id="username"></span></p>
+        <p>{{ .Welcome }} <span id="username"></span></p>
         <div class="add-game">
-            <h3>Add a New Game</h3>
+            <h3>{{ .AddNewGame }}</h3>
             <form action="{{ .Id }}/add-game" method="post">
-                <input type="text" name="name" placeholder="Game name*" required title="Enter the game name" alt="Enter the game name">
+                <input type="text" name="name" placeholder="{{ .GameName }}*" required title="Enter the game name" alt="Enter the game name">
                 <input type="text" name="bgg_url" placeholder="BGG URL">
-                <input type="number" name="max_players" placeholder="Max players">
+                <input type="number" name="max_players" placeholder="{{ .MaxPlayers }}">
                 <input type="text" name="user_id" placeholder="Your username" id="userID" required hidden>
-                <button type="submit">Add Game</button>
+                <button type="submit">{{ .AddGame }}</button>
             </form>
         </div>
     </div>
-    <p class="updated">Aggiornato alle {{ .UpdatedAt }}</p>
+    <p class="updated">{{ .UpdatedAt }}</p>
     <script>
         var user = window?.Telegram?.WebApp?.initDataUnsafe?.user;
         if(user)
         { 
-            document.getElementById("username").innerText = user.username || user.first_name;
+            document.getElementById("username").innerText = user.username || `${user.first_name} ${user.last_name}`;
             document.getElementById("userID").value = user.id;
         }
         else {
             document.getElementById("username").innerText = "guest";
             document.getElementById("auth").setAttribute("style", "display: none;");
+            document.querySelectorAll(".join").forEach(button => {
+                button.setAttribute("style", "display: none;");
+            });
         }
 
         document.querySelectorAll(".join").forEach(button => {
@@ -139,7 +144,7 @@
                     body: JSON.stringify({ 
                         game_id, 
                         user_id: user.id,
-                        user_name: user.username || user.first_name,
+                        user_name: user.username || `${user.first_name} ${user.last_name}`,
                     })
                 })
                 .then(response => {

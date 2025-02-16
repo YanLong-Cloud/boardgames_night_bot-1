@@ -69,12 +69,30 @@ func (c *Controller) Event(ctx *gin.Context) {
 		return
 	}
 
+	localizer := c.Localizer(event.ChatID)
+	timeT := localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID: "WebUpdatedAt",
+		},
+		TemplateData: map[string]string{
+			"Time": time.Now().Format("2006-01-02 15:04:05"),
+		},
+	})
+
 	// serve an html file
 	ctx.HTML(http.StatusOK, "event", gin.H{
-		"Id":        event.ID,
-		"Title":     event.Name,
-		"Games":     event.BoardGames,
-		"UpdatedAt": time.Now(),
+		"Id":             event.ID,
+		"Title":          event.Name,
+		"Games":          event.BoardGames,
+		"UpdatedAt":      timeT,
+		"NoParticipants": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebNoParticipants"}),
+		"Players":        localizer.MustLocalizeMessage(&i18n.Message{ID: "WebPlayers"}),
+		"Join":           localizer.MustLocalizeMessage(&i18n.Message{ID: "WebJoin"}),
+		"AddGame":        localizer.MustLocalizeMessage(&i18n.Message{ID: "WebAddGame"}),
+		"Welcome":        localizer.MustLocalizeMessage(&i18n.Message{ID: "WebWelcome"}),
+		"AddNewGame":     localizer.MustLocalizeMessage(&i18n.Message{ID: "WebAddNewGame"}),
+		"GameName":       localizer.MustLocalizeMessage(&i18n.Message{ID: "WebGameName"}),
+		"MaxPlayers":     localizer.MustLocalizeMessage(&i18n.Message{ID: "WebMaxPlayers"}),
 	})
 
 }
