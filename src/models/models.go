@@ -76,7 +76,7 @@ func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string, botName stri
 		}
 
 		link := ""
-		if bg.BggUrl != nil && bg.BggName != nil {
+		if bg.BggUrl != nil && bg.BggName != nil && *bg.BggUrl != "" && *bg.BggName != "" {
 			link = fmt.Sprintf(" - <a href='%s'>%s</a>\n", *bg.BggUrl, *bg.BggName)
 		}
 

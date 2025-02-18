@@ -152,7 +152,7 @@ func (d *Database) SelectEventByEventID(eventID string) (*models.Event, error) {
 	FROM events e
 	LEFT JOIN boardgames b ON e.id = b.event_id
 	LEFT JOIN participants p ON b.id = p.boardgame_id
-	WHERE e.id = (SELECT MAX(id) FROM events WHERE id = @id LIMIT 1);`
+	WHERE e.id = @id;`
 	return d.selectEventByQuery(query, map[string]any{"id": eventID})
 }
 
