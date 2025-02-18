@@ -119,6 +119,7 @@ func (t Telegram) CreateGame(c telebot.Context) error {
 		failedT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToCreateEvent"}})
 		return c.Reply(failedT)
 	}
+	log.Printf("Event created with id: %s", eventID)
 
 	var event *models.Event
 
@@ -170,7 +171,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 	userName := DefineUsername(c.Sender())
 	gameName := strings.Join(args[0:], " ")
 	maxPlayers := 5
-	log.Printf("Adding game: %s with max players: %d", gameName, maxPlayers)
+	log.Printf("Adding game: %s in chat id %d with max players: %d", gameName, chatID, maxPlayers)
 
 	var event *models.Event
 	var boardGameID int64
@@ -245,6 +246,8 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		log.Println("Event message id is nil")
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 	}
+
+	log.Printf("Event message id: %d", *event.MessageID)
 
 	body, markup := event.FormatMsg(t.Localizer(c), t.BaseUrl, t.BotName)
 

@@ -50,7 +50,8 @@ func (d *Database) CreateTables() {
 			user_id INTEGER,
 			user_name TEXT,
 			name TEXT,
-			message_id INTEGER
+			message_id INTEGER,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`,
 		`CREATE TABLE IF NOT EXISTS boardgames (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,7 +130,7 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 	FROM events e
 	LEFT JOIN boardgames b ON e.id = b.event_id
 	LEFT JOIN participants p ON b.id = p.boardgame_id
-	WHERE e.id = (SELECT MAX(id) FROM events WHERE chat_id = @chat_id LIMIT 1);`
+	WHERE e.id = (SELECT id FROM events WHERE chat_id = @chat_id ORDER BY created_at DESC LIMIT 1);`
 	return d.selectEventByQuery(query, map[string]any{"chat_id": chatID})
 }
 
