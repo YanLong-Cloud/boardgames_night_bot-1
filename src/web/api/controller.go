@@ -123,6 +123,12 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		return
 	}
 
+	if event.Locked && event.UserID != bg.UserID {
+		log.Println("Event is locked")
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Unable to add game to locked event"})
+		return
+	}
+
 	if bg.MaxPlayers == nil {
 		defaultMax := 5
 		bg.MaxPlayers = &defaultMax

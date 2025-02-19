@@ -25,6 +25,7 @@ type Event struct {
 	MessageID  *int64
 	Name       string
 	BoardGames []BoardGame
+	Locked     bool
 }
 
 type AddPlayerRequest struct {

@@ -184,6 +184,11 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		return c.Reply(failedT)
 	}
 
+	if event.Locked && event.UserID != userID {
+		log.Println("Event is locked")
+		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "EventLocked"}}))
+	}
+
 	ctx := context.Background()
 	var results []gobgg.SearchResult
 	var bgUrl, bgName *string

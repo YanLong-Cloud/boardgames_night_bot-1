@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -118,6 +119,7 @@ func (d *Database) SelectEvent(chatID int64) (*models.Event, error) {
 	e.name, 
 	e.chat_id,
 	e.message_id,
+	e.user_id,
 	b.id,
 	b.name,
 	b.max_players,
@@ -141,6 +143,7 @@ func (d *Database) SelectEventByEventID(eventID string) (*models.Event, error) {
 	e.name, 
 	e.chat_id,
 	e.message_id,
+	e.user_id,
 	b.id,
 	b.name,
 	b.max_players,
@@ -180,6 +183,7 @@ func (d *Database) selectEventByQuery(query string, args map[string]any) (*model
 			&event.Name,
 			&event.ChatID,
 			&eventMessageID,
+			&event.UserID,
 			&boardGameID,
 			&boardGameName,
 			&boardGameMaxPlayers,
@@ -194,6 +198,7 @@ func (d *Database) selectEventByQuery(query string, args map[string]any) (*model
 		}
 
 		event.MessageID = IntOrNil(eventMessageID)
+		event.Locked = strings.Contains(event.Name, "🔒")
 
 		if IntOrNil(boardGameID) != nil {
 			boardGame = models.BoardGame{

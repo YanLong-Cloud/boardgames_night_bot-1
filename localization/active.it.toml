@@ -1,4 +1,4 @@
-Welcome = "Benvenuto nel Boardgame Night Bot! 🎲\nSiamo qui per aiutarti a organizzare la tua serata di giochi da tavolo.\nUtilizzo:\nUsa /create [nome evento] per creare un nuovo evento.\nUsa /add_game [nome gioco] per aggiungere giochi all'evento.\nUsa /language [lan] per impostare la lingua del bot.\nClicca sui pulsanti per unirti o lasciare un gioco.\nDivertiti! 🎉"  
+Welcome = "Benvenuto nel Boardgame Night Bot! 🎲\nSiamo qui per aiutarti a organizzare la tua serata di giochi da tavolo.\nUtilizzo:\nUsa /create [nome evento] per creare un nuovo evento, aggiungi il 🔒 se vuoi che l'evento sia modificabile solo da te.\nUsa /add_game [nome gioco] per aggiungere giochi all'evento.\nUsa /language [lan] per impostare la lingua del bot.\nClicca sui pulsanti per unirti o lasciare un gioco.\nDivertiti! 🎉"  
 
 Usage = "Utilizzo: {{.Command}} {{.Example}}"
 
@@ -25,6 +25,7 @@ LanguageSet = "Lingua impostata su {{.Language}}."
 
 GameNotFound = "Gioco non trovato. Stai cercando di aggiornare le informazioni di un gioco che non esiste. Probabilmente stai commentando il messaggio sbagliato."  
 EventNotFound = "Evento non trovato."
+EventLocked = "L'evento è bloccato 🔒. Solo il creatore può aggiornare l'evento o aggiungere giochi."
 
 Join = "Partecipa a {{.Name}}"  
 UpdatedAt = "<i>Aggiornato alle {{.Time}}</i>\nUsa /add_game per aggiungere altri giochi"  

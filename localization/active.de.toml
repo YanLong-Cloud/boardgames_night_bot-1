@@ -25,6 +25,7 @@ LanguageSet = "Sprache auf {{.Language}} gesetzt."
 
 GameNotFound = "Spiel nicht gefunden. Du versuchst, die Informationen eines Spiels zu aktualisieren, das nicht existiert. Wahrscheinlich kommentierst du die falsche Nachricht."
 EventNotFound = "Ereignis nicht gefunden."
+EventLocked = "Ereignis ist gesperrt 🔒. Nur der Ersteller kann das Ereignis aktualisieren oder Spiele hinzufügen."
 
 Join = "Beitreten {{.Name}}"
 UpdatedAt = "<i>Aktualisiert am {{.Time}}</i>\n/add_game, um weitere Spiele hinzuzufügen"
