@@ -333,6 +333,21 @@ func (d *Database) UpdateBoardGameBGGInfo(messageID int64, maxPlayers int, bggID
 	return nil
 }
 
+func (d *Database) HasBoardGameWithMessageID(messageID int64) bool {
+	query := `SELECT id FROM boardgames WHERE message_id = @message_id;`
+
+	var id int64
+	if err := d.db.QueryRow(query,
+		NamedArgs(map[string]any{
+			"message_id": messageID,
+		})...,
+	).Scan(&id); err != nil {
+		return false
+	}
+
+	return true
+}
+
 func (d *Database) InsertParticipant(eventID string, boardgameID, userID int64, userName string) (int64, error) {
 	var participantID int64
 	query := `INSERT INTO participants (event_id, boardgame_id, user_id, user_name) VALUES (@event_id, @boardgame_id, @user_id, @user_name) RETURNING id;`

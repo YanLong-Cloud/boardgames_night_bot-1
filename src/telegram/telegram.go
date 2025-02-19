@@ -322,6 +322,14 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 	maxPlayerS := c.Text()
 
 	maxPlayers, err2 := strconv.ParseInt(maxPlayerS, 10, 64)
+	if exists := t.DB.HasBoardGameWithMessageID(int64(messageID)); !exists {
+		if err2 == nil {
+			return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
+		} else {
+			return c.Respond()
+		}
+	}
+
 	if err2 != nil {
 		invalidT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "InvalidNumberOfPlayers"}})
 
