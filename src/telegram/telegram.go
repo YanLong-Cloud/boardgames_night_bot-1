@@ -305,7 +305,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 
 func (t Telegram) UpdateGameDispatcher(c telebot.Context) error {
 	if c.Message().ReplyTo == nil {
-		return nil
+		return c.Respond()
 	}
 
 	if strings.HasPrefix(c.Text(), "https://boardgamegeek.com/boardgame/") {
