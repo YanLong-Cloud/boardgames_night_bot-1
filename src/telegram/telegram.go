@@ -260,7 +260,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 	if err != nil {
 		log.Println("Failed to edit message", err)
 		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			return c.Respond()
+			return nil
 		}
 
 		failedT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToUpdateMessageEvent"}})
@@ -300,12 +300,12 @@ func (t Telegram) AddGame(c telebot.Context) error {
 		return c.Reply(failedT)
 	}
 
-	return c.Respond()
+	return nil
 }
 
 func (t Telegram) UpdateGameDispatcher(c telebot.Context) error {
 	if c.Message().ReplyTo == nil {
-		return c.Respond()
+		return nil
 	}
 
 	if strings.HasPrefix(c.Text(), "https://boardgamegeek.com/boardgame/") {
@@ -326,7 +326,7 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 		if err2 == nil {
 			return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 		} else {
-			return c.Respond()
+			return nil
 		}
 	}
 
@@ -371,7 +371,7 @@ func (t Telegram) UpdateGameNumberOfPlayer(c telebot.Context) error {
 	if err != nil {
 		log.Println("Failed to edit message", err)
 		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			return c.Respond()
+			return nil
 		}
 
 		failedT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToUpdateMessageEvent"}})
@@ -435,7 +435,7 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 	if err != nil {
 		log.Println("Failed to edit message", err)
 		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			return c.Respond()
+			return nil
 		}
 
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToUpdateMessageEvent"}}))
@@ -539,13 +539,13 @@ func (t Telegram) CallbackAddPlayer(c telebot.Context) error {
 	if err != nil {
 		log.Println("Failed to edit message", err)
 		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			return c.Respond()
+			return nil
 		}
 
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToUpdateMessageEvent"}}))
 	}
 
-	return c.Respond()
+	return nil
 }
 
 func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
@@ -593,11 +593,11 @@ func (t Telegram) CallbackRemovePlayer(c telebot.Context) error {
 	if err != nil {
 		log.Println("Failed to edit message", err)
 		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			return c.Respond()
+			return nil
 		}
 
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToUpdateMessageEvent"}}))
 	}
 
-	return c.Respond()
+	return nil
 }

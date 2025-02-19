@@ -142,7 +142,7 @@ func main() {
 
 	bot.Handle(telebot.OnText, func(c telebot.Context) error {
 		if c.Message().ReplyTo == nil {
-			return c.Respond()
+			return nil
 		}
 
 		return telegram.UpdateGameDispatcher(c)
