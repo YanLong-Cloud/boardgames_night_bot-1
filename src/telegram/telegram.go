@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"boardgame-night-bot/src/database"
+	"boardgame-night-bot/src/language"
 	"boardgame-night-bot/src/models"
 	"context"
 	"errors"
@@ -22,6 +23,7 @@ type Telegram struct {
 	DB             *database.Database
 	BGG            *gobgg.BGG
 	LanguageBundle *i18n.Bundle
+	LanguagePack   *language.LanguagePack
 	BaseUrl        string
 	BotName        string
 }
@@ -452,6 +454,19 @@ func (t Telegram) SetLanguage(c telebot.Context) error {
 	chatID := c.Chat().ID
 	language := args[0]
 	log.Printf("Setting language to %s in chat %d", language, chatID)
+
+	if !t.LanguagePack.HasLanguage(language) {
+		log.Printf("Language %s not available\n", language)
+		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID: "FailedLanguageNotAvailable",
+			},
+			TemplateData: map[string]string{
+				"AvailableLanguages": strings.Join(t.LanguagePack.Languages, ", "),
+			},
+		},
+		))
+	}
 
 	if err := t.DB.InsertChat(chatID, language); err != nil {
 		log.Println("Failed to set language:", err)

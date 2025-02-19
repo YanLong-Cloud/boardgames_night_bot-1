@@ -1,0 +1,42 @@
+Welcome = "Willkommen beim Boardgame Night Bot! 🎲\nWir helfen dir, deinen Spieleabend zu organisieren.\nVerwendung:\nNutze /create [Ereignisname], um ein neues Ereignis zu erstellen.\nNutze /add_game [Spielname], um Spiele zum Ereignis hinzuzufügen.\nNutze /language [Sprache], um die Sprache des Bots einzustellen.\nKlicke auf die Schaltflächen, um einem Spiel beizutreten oder es zu verlassen.\nViel Spaß! 🎉"
+
+Usage = "Verwendung: {{.Command}} {{.Example}}"
+
+EventName = "Ereignisname"
+GameName = "Spielname"
+
+FailedToCreateEvent = "Ereignis konnte nicht erstellt werden. Bitte versuche es erneut."
+FailedToAddGame = "Spiel konnte nicht hinzugefügt werden. Bitte versuche es erneut."
+FailedToUpdateMessageEvent = "Nachricht konnte nicht aktualisiert werden. Bitte versuche es erneut."
+FailedToUpdateGame = "Spiel konnte nicht aktualisiert werden. Bitte versuche es erneut."
+FailedToGetGameInfo = "Spielinformationen von BoardGameGeek konnten nicht abgerufen werden. Bitte versuche es erneut."
+FailedToSetLanguage = "Sprache konnte nicht festgelegt werden. Bitte versuche es erneut."
+FailedToAddPlayer = "Spieler konnte nicht hinzugefügt werden. Bitte versuche es erneut."
+FailedToRemovePlayer = "Spieler konnte nicht entfernt werden. Bitte versuche es erneut."
+FailedLanguageNotAvailable = "Sprache nicht verfügbar. Bitte versuche es erneut mit einer der folgenden verfügbaren Sprachen: {{.AvailableLanguages}}."
+
+InvalidNumberOfPlayers = "Ungültige Spieleranzahl. Bitte versuche es erneut."
+InvalidBggURL = "Ungültige BoardGameGeek-URL. Bitte versuche es erneut."
+InvalidData = "Ungültige Daten. Bitte versuche es erneut."
+
+GameAdded = "Spiel <b>{{.Name}}</b>{{.Link}} hinzugefügt! (1/{{.MaxPlayers}} Spieler).\nAntworte auf diese Nachricht mit der maximalen Spieleranzahl, um sie zu aktualisieren (Standard: {{.MaxPlayers}}).\nDu kannst mir auch den https://boardgamegeek.com/ Link senden, um die Spielinformationen zu aktualisieren.\nKlicke auf den Button, um beizutreten."
+GameUpdated = "Spiel aktualisiert!"
+LanguageSet = "Sprache auf {{.Language}} gesetzt."
+
+GameNotFound = "Spiel nicht gefunden. Du versuchst, die Informationen eines Spiels zu aktualisieren, das nicht existiert. Wahrscheinlich kommentierst du die falsche Nachricht."
+EventNotFound = "Ereignis nicht gefunden."
+
+Join = "Beitreten {{.Name}}"
+UpdatedAt = "<i>Aktualisiert am {{.Time}}</i>\n/add_game, um weitere Spiele hinzuzufügen"
+
+Open = "Hier klicken, um die Einstellungen für Ereignis {{.Name}} zu öffnen und beizutreten."
+
+WebNoParticipants = "Noch keine Teilnehmer."
+WebPlayers = "Spieler"
+WebJoin = "Beitreten"
+WebAddGame = "Spiel hinzufügen"
+WebAddNewGame = "Ein neues Spiel hinzufügen"
+WebWelcome = "Willkommen"
+WebGameName = "Spielname"
+WebMaxPlayers = "Maximale Spieleranzahl"
+WebUpdatedAt = "Aktualisiert am {{.Time}}"

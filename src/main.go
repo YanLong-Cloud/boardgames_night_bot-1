@@ -2,9 +2,11 @@ package main
 
 import (
 	"boardgame-night-bot/src/database"
+	langpack "boardgame-night-bot/src/language"
 	"boardgame-night-bot/src/models"
 	"boardgame-night-bot/src/telegram"
 	"boardgame-night-bot/src/web"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -60,8 +62,16 @@ func main() {
 
 	bundle := i18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	bundle.MustLoadMessageFile("localization/active.en.toml")
-	bundle.MustLoadMessageFile("localization/active.it.toml")
+
+	lp, err := langpack.BuildLanguagePack()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, lang := range lp.Languages {
+		log.Default().Printf("Loading language file: %s", lang)
+		bundle.MustLoadMessageFile(fmt.Sprintf("localization/active.%s.toml", lang))
+	}
 
 	if err = godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
@@ -117,6 +127,7 @@ func main() {
 		DB:             db,
 		BGG:            bgg,
 		LanguageBundle: bundle,
+		LanguagePack:   lp,
 		BaseUrl:        baseUrl,
 		BotName:        botName,
 	}

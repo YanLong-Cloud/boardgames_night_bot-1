@@ -13,6 +13,7 @@ FailedToGetGameInfo = "Failed to get game info from BoardGameGeek. Please try ag
 FailedToSetLanguage = "Failed to set language. Please try again."
 FailedToAddPlayer = "Failed to add player. Please try again."
 FailedToRemovePlayer = "Failed to remove player. Please try again."
+FailedLanguageNotAvailable = "Language not available. Please try again with one of these available languages: {{.AvailableLanguages}}."
 
 InvalidNumberOfPlayers = "Invalid number of players. Please try again."
 InvalidBggURL = "Invalid BoardGameGeek URL. Please try again."
