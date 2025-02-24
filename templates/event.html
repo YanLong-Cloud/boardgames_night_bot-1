@@ -20,6 +20,7 @@
             grid-template-columns: 1fr 5fr;
         }
         .game img { width: 60px; height: 60px; border-radius: 5px; margin-right: 15px; }
+        .game .blurred-image { filter: blur(2px); }
         .game a { text-decoration: none; color: #007bff; font-weight: bold; }
         .game p { margin: 5px 0; }
         .participants { margin-left: 20px; font-style: italic; color: #555; }
@@ -104,7 +105,11 @@
     <div class="game-list">
         {{ range .Games }}
         <div class="game">
-            <img src="{{ .BggUrl }}" alt="Game Image">
+            {{ if .BggImageUrl }}
+            <img class="swap-image" src="{{ .BggImageUrl }}" custom="{{ .BggImageUrl}}" alt="Game image of {{ .Name }}">
+            {{ else }}
+            <img class="blurred-image" src="https://picsum.photos/200" alt="Placeholder for  {{ .Name }}">
+            {{ end }}
             <div class="game-info">
                 <p>🎲  
                     {{ if .BggUrl }}
@@ -157,6 +162,10 @@
                 button.setAttribute("style", "display: none;");
             });
         }
+
+        document.querySelectorAll(".swap-image").forEach(img => {
+            img.setAttribute("src", img.getAttribute("custom"));
+        });
 
         document.querySelectorAll(".join").forEach(button => {
             button.addEventListener("click", function(event) {

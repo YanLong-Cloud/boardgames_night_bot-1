@@ -42,6 +42,7 @@ type BoardGame struct {
 	BggID        *int64        `json:"bgg_id"`
 	BggName      *string       `json:"bgg_name"`
 	BggUrl       *string       `json:"bgg_url"`
+	BggImageUrl  *string       `json:"bgg_image_url"`
 }
 
 type AddGameRequest struct {
@@ -183,9 +184,9 @@ func IsValidUUID(u string) bool {
 	return err == nil
 }
 
-func ExtractGameInfo(ctx context.Context, BGG *gobgg.BGG, id int64, gameName string) (*int, *string, *string, error) {
+func ExtractGameInfo(ctx context.Context, BGG *gobgg.BGG, id int64, gameName string) (*int, *string, *string, *string, error) {
 	var err error
-	var bgUrl, bgName *string
+	var bgUrl, bgName, bgImageUrl *string
 	var maxPlayers *int
 	url := fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", id)
 	bgUrl = &url
@@ -194,7 +195,7 @@ func ExtractGameInfo(ctx context.Context, BGG *gobgg.BGG, id int64, gameName str
 
 	if things, err = BGG.GetThings(ctx, gobgg.GetThingIDs(id)); err != nil {
 		log.Printf("Failed to get game %d: %v", id, err)
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	if len(things) > 0 {
@@ -204,9 +205,12 @@ func ExtractGameInfo(ctx context.Context, BGG *gobgg.BGG, id int64, gameName str
 		} else {
 			bgName = &gameName
 		}
+		if things[0].Image != "" {
+			bgImageUrl = &things[0].Image
+		}
 	}
 
-	return maxPlayers, bgName, bgUrl, nil
+	return maxPlayers, bgName, bgUrl, bgImageUrl, nil
 }
 
 const MessageUnchangedErrorMessage = "specified new message content and reply markup are exactly the same as a current content and reply markup of the message"

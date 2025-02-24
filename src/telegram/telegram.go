@@ -191,7 +191,7 @@ func (t Telegram) AddGame(c telebot.Context) error {
 
 	ctx := context.Background()
 	var results []gobgg.SearchResult
-	var bgUrl, bgName *string
+	var bgUrl, bgName, bggImageUrl *string
 	var bgID *int64
 
 	if results, err = t.BGG.Search(ctx, gameName); err != nil {
@@ -228,10 +228,14 @@ func (t Telegram) AddGame(c telebot.Context) error {
 			} else {
 				bgName = &gameName
 			}
+			if things[0].Image != "" {
+				bggImageUrl = &things[0].Image
+				log.Println("Image URL:", *bggImageUrl)
+			}
 		}
 	}
 
-	if boardGameID, err = t.DB.InsertBoardGame(event.ID, gameName, maxPlayers, bgID, bgName, bgUrl); err != nil {
+	if boardGameID, err = t.DB.InsertBoardGame(event.ID, gameName, maxPlayers, bgID, bgName, bgUrl, bggImageUrl); err != nil {
 		log.Println("Failed to add game:", err)
 		failedT := t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToAddGame"}})
 		return c.Reply(failedT)
@@ -401,16 +405,16 @@ func (t Telegram) UpdateGameBGGInfo(c telebot.Context) error {
 
 	ctx := context.Background()
 	var maxPlayers *int
-	var bgName, bgUrl *string
+	var bgName, bgUrl, bgImageUrl *string
 
-	if maxPlayers, bgName, bgUrl, err = models.ExtractGameInfo(ctx, t.BGG, id, "old name"); err != nil {
+	if maxPlayers, bgName, bgUrl, bgImageUrl, err = models.ExtractGameInfo(ctx, t.BGG, id, "old name"); err != nil {
 		log.Printf("Failed to get game %d: %v", id, err)
 		return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "FailedToGetGameInfo"}}))
 	}
 
 	log.Printf("Updating game message id: %d with number of players: %d", messageID, maxPlayers)
 
-	if err = t.DB.UpdateBoardGameBGGInfo(int64(messageID), *maxPlayers, &id, bgName, bgUrl); err != nil {
+	if err = t.DB.UpdateBoardGameBGGInfo(int64(messageID), *maxPlayers, &id, bgName, bgUrl, bgImageUrl); err != nil {
 		if errors.Is(err, database.ErrNoRows) {
 			return c.Reply(t.Localizer(c).MustLocalize(&i18n.LocalizeConfig{DefaultMessage: &i18n.Message{ID: "GameNotFound"}}))
 		}

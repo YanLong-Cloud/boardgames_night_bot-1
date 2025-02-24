@@ -213,7 +213,7 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 	}
 
 	maxPlayers := int(game.MaxPlayers)
-	if bg.MaxPlayers != nil {
+	if bg.MaxPlayers != nil && *bg.MaxPlayers > 0 {
 		maxPlayers = *bg.MaxPlayers
 	}
 
@@ -222,10 +222,12 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 	bgID := game.BggID
 	bgName := game.BggName
 	bgUrl := game.BggUrl
+	bgImageUrl := game.BggImageUrl
 	if bg.Unlink == "on" {
 		bgID = nil
 		bgName = nil
 		bgUrl = nil
+		bgImageUrl = nil
 	}
 
 	if bg.BggUrl != nil && *bg.BggUrl != "" {
@@ -238,7 +240,7 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 
 		var bgMaxPlayers *int
 
-		if bgMaxPlayers, bgName, bgUrl, err = models.ExtractGameInfo(bgCtx, c.BGG, id, game.Name); err != nil {
+		if bgMaxPlayers, bgName, bgUrl, bgImageUrl, err = models.ExtractGameInfo(bgCtx, c.BGG, id, game.Name); err != nil {
 			log.Printf("Failed to get game %d: %v", id, err)
 		}
 		if bgMaxPlayers != nil {
@@ -246,7 +248,7 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 		}
 	}
 
-	if err = c.DB.UpdateBoardGameBGGInfoByID(gameID, maxPlayers, bgID, bgName, bgUrl); err != nil {
+	if err = c.DB.UpdateBoardGameBGGInfoByID(gameID, maxPlayers, bgID, bgName, bgUrl, bgImageUrl); err != nil {
 		log.Println("Failed to update board game:", err)
 		c.renderError(ctx, &eventID, &event.ChatID, "Failed to update board game")
 		return
@@ -341,7 +343,7 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 	bgCtx := context.Background()
 
 	var bgID *int64
-	var bgName, bgUrl *string
+	var bgName, bgUrl, bgImageUrl *string
 	if bg.BggUrl != nil && *bg.BggUrl != "" {
 		var valid bool
 		var id int64
@@ -353,7 +355,7 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 
 		var bgMaxPlayers *int
 
-		if bgMaxPlayers, bgName, bgUrl, err = models.ExtractGameInfo(bgCtx, c.BGG, id, bg.Name); err != nil {
+		if bgMaxPlayers, bgName, bgUrl, bgImageUrl, err = models.ExtractGameInfo(bgCtx, c.BGG, id, bg.Name); err != nil {
 			log.Printf("Failed to get game %d: %v", id, err)
 		} else {
 			bgID = &id
@@ -401,13 +403,16 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 				} else {
 					bgName = &bg.Name
 				}
+				if things[0].Image != "" {
+					bgImageUrl = &things[0].Image
+				}
 			}
 		}
 	}
 
 	log.Printf("Inserting %s in the db", bg.Name)
 
-	if _, err = c.DB.InsertBoardGame(event.ID, bg.Name, *bg.MaxPlayers, bgID, bgName, bgUrl); err != nil {
+	if _, err = c.DB.InsertBoardGame(event.ID, bg.Name, *bg.MaxPlayers, bgID, bgName, bgUrl, bgImageUrl); err != nil {
 		log.Println("Failed to insert board game:", err)
 		c.renderError(ctx, &event.ID, &event.ChatID, "Failed to insert board game")
 		return
