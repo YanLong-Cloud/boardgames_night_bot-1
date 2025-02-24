@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,13 +40,19 @@ func NewController(router *gin.RouterGroup, db *database.Database, bgg *gobgg.BG
 	}
 }
 
-func (t Controller) Localizer(chatID int64) *i18n.Localizer {
-	return i18n.NewLocalizer(t.LanguageBundle, t.DB.GetPreferredLanguage(chatID), "en")
+func (t Controller) Localizer(chatID *int64) *i18n.Localizer {
+	if chatID == nil {
+		return i18n.NewLocalizer(t.LanguageBundle, "en")
+	}
+
+	return i18n.NewLocalizer(t.LanguageBundle, t.DB.GetPreferredLanguage(*chatID), "en")
 }
 
 func (c *Controller) InjectRoute() {
 	c.Router.GET("/", c.Index)
 	c.Router.GET("/events/:event_id", c.Event)
+	c.Router.GET("/events/:event_id/games/:game_id", c.Game)
+	c.Router.POST("/events/:event_id/games/:game_id", c.UpdateGame)
 	c.Router.POST("/events/:event_id/add-game", c.AddGame)
 	c.Router.POST("/events/:event_id/join", c.AddPlayer)
 }
@@ -54,12 +61,31 @@ func (c *Controller) Index(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "index", nil)
 }
 
+func (c *Controller) renderError(ctx *gin.Context, id *string, chatID *int64, err string) {
+	localizer := c.Localizer(chatID)
+
+	ctx.HTML(http.StatusOK, "error", gin.H{
+		"Id":                 id,
+		"SomethingWentWrong": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebSomethingWentWrong"}),
+		"Error":              err,
+	})
+}
+
+func (c *Controller) NoRoute(ctx *gin.Context) {
+	localizer := c.Localizer(nil)
+	ctx.HTML(http.StatusOK, "error", gin.H{
+		"Id":                 nil,
+		"SomethingWentWrong": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebSomethingWentWrong"}),
+		"Error":              "Page not found",
+	})
+}
+
 func (c *Controller) Event(ctx *gin.Context) {
 	var err error
 	eventID := ctx.Param("event_id")
 
 	if !models.IsValidUUID(eventID) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
 
@@ -67,11 +93,11 @@ func (c *Controller) Event(ctx *gin.Context) {
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
 		log.Println("Failed to load game:", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
 
-	localizer := c.Localizer(event.ChatID)
+	localizer := c.Localizer(&event.ChatID)
 	timeT := localizer.MustLocalize(&i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
 			ID: "WebUpdatedAt",
@@ -96,7 +122,179 @@ func (c *Controller) Event(ctx *gin.Context) {
 		"GameName":       localizer.MustLocalizeMessage(&i18n.Message{ID: "WebGameName"}),
 		"MaxPlayers":     localizer.MustLocalizeMessage(&i18n.Message{ID: "WebMaxPlayers"}),
 	})
+}
 
+func (c *Controller) Game(ctx *gin.Context) {
+	var err error
+	eventID := ctx.Param("event_id")
+	gameID, err2 := strconv.ParseInt(ctx.Param("game_id"), 10, 64)
+	if err2 != nil {
+		c.renderError(ctx, nil, nil, "Invalid game ID")
+		return
+	}
+
+	if !models.IsValidUUID(eventID) {
+		c.renderError(ctx, nil, nil, "Invalid event ID")
+		return
+	}
+
+	var event *models.Event
+	var game *models.BoardGame
+
+	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		c.renderError(ctx, nil, nil, "Invalid event ID")
+		return
+	}
+
+	localizer := c.Localizer(&event.ChatID)
+
+	for _, g := range event.BoardGames {
+		if g.ID == gameID {
+			game = &g
+			break
+		}
+	}
+
+	ctx.HTML(http.StatusOK, "game_info", gin.H{
+		"Id":                      event.ID,
+		"Title":                   event.Name,
+		"Game":                    game,
+		"NoParticipants":          localizer.MustLocalizeMessage(&i18n.Message{ID: "WebNoParticipants"}),
+		"Players":                 localizer.MustLocalizeMessage(&i18n.Message{ID: "WebPlayers"}),
+		"MaxPlayers":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebMaxPlayers"}),
+		"UpdateGame":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUpdateGame"}),
+		"Update":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "Update"}),
+		"UnlinkFormBoardGameGeek": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUnlinkFormBoardGameGeek"}),
+	})
+}
+
+func (c *Controller) UpdateGame(ctx *gin.Context) {
+	var err error
+	eventID := ctx.Param("event_id")
+	gameID, err2 := strconv.ParseInt(ctx.Param("game_id"), 10, 64)
+	if err2 != nil {
+		c.renderError(ctx, nil, nil, "Invalid game ID")
+		return
+	}
+
+	if !models.IsValidUUID(eventID) {
+		c.renderError(ctx, nil, nil, "Invalid event ID")
+		return
+	}
+
+	var bg models.UpdateGameRequest
+	if err = ctx.ShouldBind(&bg); err != nil {
+		log.Println("Failed to bind form:", err)
+		c.renderError(ctx, nil, nil, "Invalid submitted form")
+		return
+	}
+
+	var event *models.Event
+	var game *models.BoardGame
+
+	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		c.renderError(ctx, nil, nil, "Invalid event ID")
+		return
+	}
+
+	for _, g := range event.BoardGames {
+		if g.ID == gameID {
+			game = &g
+			break
+		}
+	}
+
+	maxPlayers := int(game.MaxPlayers)
+	if bg.MaxPlayers != nil {
+		maxPlayers = *bg.MaxPlayers
+	}
+
+	bgCtx := context.Background()
+
+	bgID := game.BggID
+	bgName := game.BggName
+	bgUrl := game.BggUrl
+	if bg.Unlink == "on" {
+		bgID = nil
+		bgName = nil
+		bgUrl = nil
+	}
+
+	if bg.BggUrl != nil && *bg.BggUrl != "" {
+		var valid bool
+		var id int64
+		if id, valid = models.ExtractBoardGameID(*bg.BggUrl); !valid {
+			c.renderError(ctx, &eventID, &event.ChatID, "Invalid bgg url")
+			return
+		}
+
+		var bgMaxPlayers *int
+
+		if bgMaxPlayers, bgName, bgUrl, err = models.ExtractGameInfo(bgCtx, c.BGG, id, game.Name); err != nil {
+			log.Printf("Failed to get game %d: %v", id, err)
+		}
+		if bgMaxPlayers != nil {
+			maxPlayers = int(*bgMaxPlayers)
+		}
+	}
+
+	if err = c.DB.UpdateBoardGameBGGInfoByID(gameID, maxPlayers, bgID, bgName, bgUrl); err != nil {
+		log.Println("Failed to update board game:", err)
+		c.renderError(ctx, &eventID, &event.ChatID, "Failed to update board game")
+		return
+	}
+
+	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		c.renderError(ctx, &eventID, &event.ChatID, "Invalid event ID")
+
+		return
+	}
+
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		c.renderError(ctx, &eventID, &event.ChatID, "Invalid message ID")
+		return
+	}
+
+	body, markup := event.FormatMsg(c.Localizer(&event.ChatID), c.BaseUrl, c.BotName)
+
+	_, err = c.Bot.Edit(&telebot.Message{
+		ID: int(*event.MessageID),
+		Chat: &telebot.Chat{
+			ID: event.ChatID,
+		},
+	}, body, markup, telebot.NoPreview)
+	if err != nil {
+		log.Println("Failed to edit message", err)
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
+			log.Println("Failed because unchanged", err)
+		}
+
+	}
+
+	for _, g := range event.BoardGames {
+		if g.ID == gameID {
+			game = &g
+			break
+		}
+	}
+
+	localizer := c.Localizer(&event.ChatID)
+
+	ctx.HTML(http.StatusOK, "game_info", gin.H{
+		"Id":                      event.ID,
+		"Title":                   event.Name,
+		"Game":                    game,
+		"NoParticipants":          localizer.MustLocalizeMessage(&i18n.Message{ID: "WebNoParticipants"}),
+		"Players":                 localizer.MustLocalizeMessage(&i18n.Message{ID: "WebPlayers"}),
+		"MaxPlayers":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebMaxPlayers"}),
+		"UpdateGame":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUpdateGame"}),
+		"Update":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "Update"}),
+		"UnlinkFormBoardGameGeek": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUnlinkFormBoardGameGeek"}),
+	})
 }
 
 func (c *Controller) AddGame(ctx *gin.Context) {
@@ -104,7 +302,7 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 	eventID := ctx.Param("event_id")
 
 	if !models.IsValidUUID(eventID) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
 
@@ -112,20 +310,20 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
 		log.Println("Failed to load game:", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
 
 	var bg models.AddGameRequest
 	if err = ctx.ShouldBind(&bg); err != nil {
 		log.Println("Failed to bind form:", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
+		c.renderError(ctx, &event.ID, &event.ChatID, "Invalid submitted form data")
 		return
 	}
 
 	if event.Locked && event.UserID != bg.UserID {
 		log.Println("Event is locked")
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "Unable to add game to locked event"})
+		c.renderError(ctx, &event.ID, &event.ChatID, "Unable to add game to locked event")
 		return
 	}
 
@@ -142,7 +340,8 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		var valid bool
 		var id int64
 		if id, valid = models.ExtractBoardGameID(*bg.BggUrl); !valid {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bgg url"})
+			c.renderError(ctx, &event.ID, &event.ChatID, "Invalid bgg url")
+
 			return
 		}
 
@@ -204,23 +403,23 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 
 	if _, err = c.DB.InsertBoardGame(event.ID, bg.Name, *bg.MaxPlayers, bgID, bgName, bgUrl); err != nil {
 		log.Println("Failed to insert board game:", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert board game"})
+		c.renderError(ctx, &event.ID, &event.ChatID, "Failed to insert board game")
 		return
 	}
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
 		log.Println("Failed to load game:", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		c.renderError(ctx, &event.ID, &event.ChatID, "Invalid event ID")
 		return
 	}
 
 	if event.MessageID == nil {
 		log.Println("Event message id is nil")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid message ID"})
+		c.renderError(ctx, &event.ID, &event.ChatID, "Invalid message ID")
 		return
 	}
 
-	body, markup := event.FormatMsg(c.Localizer(event.ChatID), c.BaseUrl, c.BotName)
+	body, markup := event.FormatMsg(c.Localizer(&event.ChatID), c.BaseUrl, c.BotName)
 
 	_, err = c.Bot.Edit(&telebot.Message{
 		ID: int(*event.MessageID),
@@ -244,11 +443,18 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		}
 	}
 
-	// ctx.JSON(http.StatusOK, gin.H{"message": "Board game added successfully"})
+	localizer := c.Localizer(&event.ChatID)
+
 	ctx.HTML(http.StatusOK, "game_info", gin.H{
-		"Id":    event.ID,
-		"Title": event.Name,
-		"Game":  game,
+		"Id":                      event.ID,
+		"Title":                   event.Name,
+		"Game":                    game,
+		"NoParticipants":          localizer.MustLocalizeMessage(&i18n.Message{ID: "WebNoParticipants"}),
+		"Players":                 localizer.MustLocalizeMessage(&i18n.Message{ID: "WebPlayers"}),
+		"MaxPlayers":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebMaxPlayers"}),
+		"UpdateGame":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUpdateGame"}),
+		"Update":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "Update"}),
+		"UnlinkFormBoardGameGeek": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUnlinkFormBoardGameGeek"}),
 	})
 }
 
@@ -287,7 +493,7 @@ func (c *Controller) AddPlayer(ctx *gin.Context) {
 		return
 	}
 
-	body, markup := event.FormatMsg(c.Localizer(event.ChatID), c.BaseUrl, c.BotName)
+	body, markup := event.FormatMsg(c.Localizer(&event.ChatID), c.BaseUrl, c.BotName)
 
 	_, err = c.Bot.Edit(&telebot.Message{
 		ID: int(*event.MessageID),

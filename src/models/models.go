@@ -51,6 +51,13 @@ type AddGameRequest struct {
 	UserID     int64   `json:"user_id" form:"user_id"`
 }
 
+type UpdateGameRequest struct {
+	MaxPlayers *int    `json:"max_players" form:"max_players"`
+	BggUrl     *string `json:"bgg_url" form:"bgg_url"`
+	UserID     int64   `json:"user_id" form:"user_id"`
+	Unlink     string  `json:"unlink" form:"unlink"`
+}
+
 type Participant struct {
 	ID       int64  `json:"id"`
 	UserID   int64  `json:"user_id"`

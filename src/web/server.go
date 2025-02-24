@@ -33,6 +33,10 @@ func StartServer(port int, db *database.Database, bgg *gobgg.BGG, bot *telebot.B
 
 	// // Load HTML templates
 
+	router.NoRoute(func(ctx *gin.Context) {
+		controller.NoRoute(ctx)
+	})
+
 	if err = router.Run(fmt.Sprintf(":%d", port)); err != nil {
 		panic(err)
 	}

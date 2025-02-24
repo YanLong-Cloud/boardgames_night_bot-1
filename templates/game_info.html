@@ -1,4 +1,6 @@
 {{ define "game_info" }}
+{{ $noParticipants := .NoParticipants }}
+{{ $players := .Players }}
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -25,7 +27,58 @@
             transition: background 0.3s;
         }
         .back-button:hover { background: #0056b3; }
+
+        .add-game { 
+            max-width: 600px; 
+            margin: 20px auto; 
+            padding: 15px; 
+            background: #fff; 
+            border-radius: 10px; 
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .add-game input {
+            width: 90%; 
+            padding: 10px; 
+            margin: 8px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            font-size: 1em;
+        }
+        .add-game button {
+            width: 95%; 
+            padding: 10px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            font-size: 1em; 
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .add-game button:hover {
+            background: #0056b3;
+        }
+
+        .left-button {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .add-game input[type="checkbox"] {
+            margin-right: 5px;
+            padding: 0px;
+            width: 25px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 0.9em;
+        }
+
+        #auth { max-width: 600px; margin: 0 auto; text-align: center; }
     </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <h1>🎲 {{ .Game.Name }}</h1>
@@ -33,7 +86,7 @@
     <div class="game-info">
         <p><strong>Game:</strong> {{ .Game.Name }}</p>
         {{ if .Game.BggUrl }}
-        <p><strong>More Info:</strong> <a href="{{ .Game.BggUrl }}" target="_blank">BoardGameGeek</a></p>
+        <p><strong>More Info:</strong> <a href="{{ .Game.BggUrl }}" target="_blank">🔗{{ .Game.BggName }}</a></p>
         {{ end }}
         <p><strong>Max Players:</strong> {{ .Game.MaxPlayers }}</p>
         <p><strong>Participants:</strong></p>
@@ -43,12 +96,34 @@
                 <p>- {{ .UserName }}</p>
                 {{ end }}
             {{ else }}
-                <p>- No participants yet</p>
+                <p>- {{ $noParticipants }}</p>
             {{ end }}
         </div>
     </div>
-    
+    <div id="auth">
+        <div class="add-game">
+            <h3>{{ .UpdateGame }}</h3>
+            <form action="{{ .Game.ID }}" method="POST">
+                <input type="number" name="max_players" placeholder="{{ .MaxPlayers }}">
+                <input type="text" name="bgg_url" placeholder="BGG URL">
+                <input type="text" name="user_id" placeholder="Your username" id="userID" required hidden>
+                <label><input type="checkbox" name="unlink"> {{ .UnlinkFormBoardGameGeek }}</label>
+                <button type="submit">{{ .Update }}</button>
+            </form>
+        </div>
+    </div>
     <a href="/events/{{ .Id }}" class="back-button">⬅️ Back</a>
+
+    <script>
+        var user = window?.Telegram?.WebApp?.initDataUnsafe?.user;
+        if(user)
+        { 
+            document.getElementById("userID").value = user.id;
+        }
+        else {
+            document.getElementById("auth").setAttribute("style", "display: none;");
+        }
+    </script>
 </body>
 </html>
 {{ end }}

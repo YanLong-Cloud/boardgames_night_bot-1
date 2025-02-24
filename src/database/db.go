@@ -338,6 +338,30 @@ func (d *Database) UpdateBoardGameBGGInfo(messageID int64, maxPlayers int, bggID
 	return nil
 }
 
+func (d *Database) UpdateBoardGameBGGInfoByID(ID int64, maxPlayers int, bggID *int64, bggName, bggUrl *string) error {
+	query := `UPDATE boardgames 
+	SET 
+	max_players = @max_players,
+	bgg_id = @bgg_id,
+	bgg_name = @bgg_name,
+	bgg_url = @bgg_url
+	WHERE id = @id RETURNING id;`
+
+	if err := d.db.QueryRow(query,
+		NamedArgs(map[string]any{
+			"max_players": maxPlayers,
+			"id":          ID,
+			"bgg_id":      bggID,
+			"bgg_name":    bggName,
+			"bgg_url":     bggUrl,
+		})...,
+	).Scan(&ID); err != nil {
+		return ParseError(err)
+	}
+
+	return nil
+}
+
 func (d *Database) HasBoardGameWithMessageID(messageID int64) bool {
 	query := `SELECT id FROM boardgames WHERE message_id = @message_id;`
 

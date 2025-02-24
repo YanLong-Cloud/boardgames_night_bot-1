@@ -1,0 +1,35 @@
+{{ define "error" }}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .SomethingWentWrong }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        h1 { color: #333; text-align: center; }
+        .back-button {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            text-align: center;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .back-button:hover { background: #0056b3; }
+    </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <h1>{{ .SomethingWentWrong }}</h1>
+    <p>{{ .Error }}</p>
+    {{ if .Id }}
+    <a href="/events/{{ .Id }}" class="back-button">⬅️ Back</a>
+    {{ end }}
+</body>
+</html>
+{{ end }}

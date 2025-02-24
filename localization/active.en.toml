@@ -29,6 +29,7 @@ EventLocked = "Event is locked 🔒. Only the creator can update the event or ad
 
 Join = "Join {{.Name}}"
 UpdatedAt = "<i>Updated at {{.Time}}</i>\n/add_game to add more game"
+Update = "Update"
 
 Open = "Click here to open event {{.Name }} settings and join."
 
@@ -41,3 +42,6 @@ WebWelcome = "Welcome"
 WebGameName = "Game Name"
 WebMaxPlayers = "Max players"
 WebUpdatedAt = "Updated at {{.Time}}"
+WebUpdateGame = "Update game"
+WebUnlinkFormBoardGameGeek = "Unlink from BoardGameGeek"
+WebSomethingWentWrong = "Something went wrong"
