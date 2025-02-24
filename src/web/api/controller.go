@@ -199,6 +199,12 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 		return
 	}
 
+	if event.Locked && event.UserID != bg.UserID {
+		log.Println("Event is locked")
+		c.renderError(ctx, &event.ID, &event.ChatID, "Unable to add game to locked event")
+		return
+	}
+
 	for _, g := range event.BoardGames {
 		if g.ID == gameID {
 			game = &g
