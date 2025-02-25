@@ -28,9 +28,15 @@ To install the Boardgame Night Bot, follow these steps:
     PORT=8080
     ```
 
-## NB
-
-You must register MiniApp url to the bot fathers before using the bot.
+> [!Note]
+>
+> You must register MiniApp url to the bot fathers before using the bot.
+>
+> Please register using `/newapp` and when asked for
+>
+> _Now please choose a short name for your web app: 3-30 characters, `a-zA-Z0-9_`_
+>
+> chose `home`
 
 ## Usage
 

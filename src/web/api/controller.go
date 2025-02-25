@@ -58,6 +58,12 @@ func (c *Controller) InjectRoute() {
 }
 
 func (c *Controller) Index(ctx *gin.Context) {
+	event_id := ctx.Query("tgWebAppStartParam")
+	if event_id != "" {
+		ctx.Redirect(http.StatusFound, fmt.Sprintf("/events/%s", event_id))
+		return
+	}
+
 	ctx.HTML(http.StatusOK, "index", nil)
 }
 

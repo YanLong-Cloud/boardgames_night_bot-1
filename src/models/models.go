@@ -141,7 +141,7 @@ func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string, botName stri
 	} else {
 		btn2 := telebot.InlineButton{
 			Text: "Web",
-			URL:  fmt.Sprintf("https://t.me/%s?start=%s", botName, e.ID),
+			URL:  fmt.Sprintf("https://t.me/%s/home?startapp=%s", botName, e.ID),
 		}
 		btns = append(btns, btn2)
 
