@@ -123,7 +123,7 @@ func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string, botName stri
 	})
 
 	btn := telebot.InlineButton{
-		Text:   "Not coming",
+		Text:   localizer.MustLocalizeMessage(&i18n.Message{ID: "NotComing"}),
 		Unique: string(Cancel),
 		Data:   e.ID,
 	}

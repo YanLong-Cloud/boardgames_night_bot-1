@@ -30,6 +30,7 @@ EventLocked = "L'evento è bloccato 🔒. Solo il creatore può aggiornare l'eve
 Join = "Partecipa a {{.Name}}"  
 UpdatedAt = "<i>Aggiornato alle {{.Time}}</i>\nUsa /add_game per aggiungere altri giochi"  
 Update = "Aggiorna"
+NotComing = "Non partecipo"
 
 Open = "Premi qui per aprire le impostazioni dell'evento {{.Name}} e partecipare."
 
