@@ -46,7 +46,7 @@ Thank you for your interest in contributing to the Boardgame Night Bot project! 
    ```
 5. **Push Your Changes**:
    ```sh
-   git push origin feature-name
+   git push origin feature/name
    ```
 6. **Submit a Pull Request**:
    - Open a PR against the `main` branch.
