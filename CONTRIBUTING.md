@@ -7,7 +7,7 @@ Thank you for your interest in contributing to the Boardgame Night Bot project! 
 1. **Fork the Repository**: Click the "Fork" button on the repository to create your own copy.
 2. **Clone the Repository**: Clone your forked repository to your local machine:
    ```sh
-   git clone https://github.com/your-username/boardgame-night-bot.git
+   git clone https://github.com/Dangerblack/boardgame_night_bot.git
    cd boardgame-night-bot
    ```
 3. **Create a Branch**: Create a new branch for your feature or bug fix:
