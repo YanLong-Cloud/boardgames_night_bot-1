@@ -219,7 +219,7 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 	}
 
 	maxPlayers := int(game.MaxPlayers)
-	if bg.MaxPlayers != nil && *bg.MaxPlayers > 0 {
+	if bg.MaxPlayers != nil && *bg.MaxPlayers >= 0 {
 		maxPlayers = *bg.MaxPlayers
 	}
 
