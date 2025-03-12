@@ -132,7 +132,7 @@ func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string, botName stri
 
 	if e.ChatID > 0 {
 		btn2 := telebot.InlineButton{
-			Text: "Web",
+			Text: localizer.MustLocalizeMessage(&i18n.Message{ID: "AddGame"}),
 			WebApp: &telebot.WebApp{
 				URL: fmt.Sprintf("%s/events/%s/", baseUrl, e.ID),
 			},
@@ -140,7 +140,7 @@ func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string, botName stri
 		btns = append(btns, btn2)
 	} else {
 		btn2 := telebot.InlineButton{
-			Text: "Web",
+			Text: localizer.MustLocalizeMessage(&i18n.Message{ID: "AddGame"}),
 			URL:  fmt.Sprintf("https://t.me/%s/home?startapp=%s", botName, e.ID),
 		}
 		btns = append(btns, btn2)

@@ -28,9 +28,10 @@ EventNotFound = "Evento non trovato."
 EventLocked = "L'evento è bloccato 🔒. Solo il creatore può aggiornare l'evento o aggiungere giochi."
 
 Join = "Partecipa a {{.Name}}"  
-UpdatedAt = "<i>Aggiornato alle {{.Time}}</i>\nUsa /add_game per aggiungere altri giochi"  
+UpdatedAt = "<i>Aggiornato alle {{.Time}}</i>"  
 Update = "Aggiorna"
 NotComing = "Non partecipo"
+AddGame = "Aggiungi un gioco"
 
 Open = "Premi qui per aprire le impostazioni dell'evento {{.Name}} e partecipare."
 
