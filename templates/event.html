@@ -113,9 +113,19 @@
             <div class="game-info">
                 <p>🎲  
                     {{ if .BggUrl }}
-                    - <a href="{{ .BggUrl }}">{{ .BggName }}</a></p>
+                    - <a href="{{ .BggUrl }}">{{ .BggName }}</a>
                     {{ end }}
-                <p><strong>[{{ .Name }}]</strong> ({{ len .Participants }}/{{ .MaxPlayers }} {{ $players }})</p>
+                </p>
+                <p>
+                    <strong>[{{ .Name }}]</strong> 
+                    (
+                        {{ if ne .MaxPlayers -1 }}
+                            {{ len .Participants }}/{{ .MaxPlayers }} {{ $players }}
+                        {{ else }}
+                            {{ len .Participants }} {{ $players }}
+                        {{ end }}
+                    )
+                </p>
                 <div class="participants">
                     {{ if .Participants }}
                         {{ range .Participants }}

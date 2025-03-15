@@ -15,7 +15,7 @@ import (
 	"gopkg.in/telebot.v3"
 )
 
-const BASE_URL = "https://3e52-2001-b07-5d31-6a42-7565-9d07-4a52-4352.ngrok-free.app"
+const PLAYER_COUNTER = "_PLAYER_COUNTER_"
 
 type Event struct {
 	ID         string
@@ -73,41 +73,71 @@ const (
 	Cancel    EventAction = "$cancel"
 )
 
+func (e Event) FormatBG(localizer *i18n.Localizer, baseUrl string, botName string, bg BoardGame) (string, telebot.InlineButton, error) {
+	msg := ""
+
+	complete := ""
+	isComplete := len(bg.Participants) == int(bg.MaxPlayers)
+	if isComplete {
+		complete = "🚫"
+	}
+
+	link := ""
+	if bg.BggUrl != nil && bg.BggName != nil && *bg.BggUrl != "" && *bg.BggName != "" {
+		link = fmt.Sprintf(" - <a href='%s'>%s</a>\n", *bg.BggUrl, *bg.BggName)
+	}
+
+	name := bg.Name
+	if bg.Name == PLAYER_COUNTER {
+		name = localizer.MustLocalizeMessage(&i18n.Message{ID: "JoinEvent"})
+	}
+
+	maxPlayer := bg.MaxPlayers
+	players := fmt.Sprintf("(%d/%d %s)", len(bg.Participants), bg.MaxPlayers, localizer.MustLocalizeMessage(&i18n.Message{ID: "Players"}))
+	if maxPlayer == -1 {
+		players = fmt.Sprintf("(%d %s)", len(bg.Participants), localizer.MustLocalizeMessage(&i18n.Message{ID: "Players"}))
+	}
+
+	msg += fmt.Sprintf("🎲 <b>%s [%s]</b> %s %s\n", link, name, players, complete)
+	for _, p := range bg.Participants {
+		msg += " - " + p.UserName + "\n"
+	}
+	msg += "\n"
+
+	joinT := localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID: "Join",
+		},
+		TemplateData: map[string]string{
+			"Name": bg.Name,
+		},
+	})
+
+	if bg.Name == PLAYER_COUNTER {
+		joinT = localizer.MustLocalizeMessage(&i18n.Message{ID: "JoinEvent"})
+	}
+
+	btn := telebot.InlineButton{
+		Text:   joinT,
+		Unique: string(AddPlayer),
+		Data:   fmt.Sprintf("%s|%d", e.ID, bg.ID),
+	}
+
+	return msg, btn, nil
+}
+
 func (e Event) FormatMsg(localizer *i18n.Localizer, baseUrl string, botName string) (string, *telebot.ReplyMarkup) {
 	btns := []telebot.InlineButton{}
 
 	msg := "📆 <b>" + e.Name + "</b>\n\n"
 	for _, bg := range e.BoardGames {
-		complete := ""
-		isComplete := len(bg.Participants) == int(bg.MaxPlayers)
-		if isComplete {
-			complete = "🚫"
+		bgMsg, btn, err := e.FormatBG(localizer, baseUrl, botName, bg)
+		if err != nil {
+			log.Printf("Failed to format board game: %v", err)
+			continue
 		}
 
-		link := ""
-		if bg.BggUrl != nil && bg.BggName != nil && *bg.BggUrl != "" && *bg.BggName != "" {
-			link = fmt.Sprintf(" - <a href='%s'>%s</a>\n", *bg.BggUrl, *bg.BggName)
-		}
-
-		msg += fmt.Sprintf("🎲 <b>%s [%s]</b> (%d/%d players) %s\n", link, bg.Name, len(bg.Participants), bg.MaxPlayers, complete)
-		for _, p := range bg.Participants {
-			msg += " - " + p.UserName + "\n"
-		}
-		msg += "\n"
-
-		joinT := localizer.MustLocalize(&i18n.LocalizeConfig{
-			DefaultMessage: &i18n.Message{
-				ID: "Join",
-			},
-			TemplateData: map[string]string{
-				"Name": bg.Name,
-			},
-		})
-		btn := telebot.InlineButton{
-			Text:   joinT,
-			Unique: string(AddPlayer),
-			Data:   fmt.Sprintf("%s|%d", e.ID, bg.ID),
-		}
+		msg += bgMsg
 
 		btns = append(btns, btn)
 
