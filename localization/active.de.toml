@@ -28,10 +28,12 @@ EventNotFound = "Ereignis nicht gefunden."
 EventLocked = "Ereignis ist gesperrt 🔒. Nur der Ersteller kann das Ereignis aktualisieren oder Spiele hinzufügen."
 
 Join = "Beitreten {{.Name}}"
+JoinEvent = "Ereignis beitreten"
 UpdatedAt = "<i>Aktualisiert am {{.Time}}</i>\n"
 Update = "Aktualisieren"
 NotComing = "Nicht teilnehmen"
 AddGame = "Spiel hinzufügen"
+Players = "Spieler"
 
 Open = "Hier klicken, um die Einstellungen für Ereignis {{.Name}} zu öffnen und beizutreten."
 

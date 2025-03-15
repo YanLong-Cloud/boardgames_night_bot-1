@@ -113,6 +113,12 @@ func (c *Controller) Event(ctx *gin.Context) {
 		},
 	})
 
+	for i, bg := range event.BoardGames {
+		if bg.Name == models.PLAYER_COUNTER {
+			event.BoardGames[i].Name = localizer.MustLocalizeMessage(&i18n.Message{ID: "JoinEvent"})
+		}
+	}
+
 	// serve an html file
 	ctx.HTML(http.StatusOK, "event", gin.H{
 		"Id":             event.ID,
@@ -160,6 +166,10 @@ func (c *Controller) Game(ctx *gin.Context) {
 			game = &g
 			break
 		}
+	}
+
+	if game.Name == models.PLAYER_COUNTER {
+		game.Name = localizer.MustLocalizeMessage(&i18n.Message{ID: "JoinEvent"})
 	}
 
 	ctx.HTML(http.StatusOK, "game_info", gin.H{
@@ -297,6 +307,9 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 	}
 
 	localizer := c.Localizer(&event.ChatID)
+	if game.Name == models.PLAYER_COUNTER {
+		game.Name = localizer.MustLocalizeMessage(&i18n.Message{ID: "JoinEvent"})
+	}
 
 	ctx.HTML(http.StatusOK, "game_info", gin.H{
 		"Id":                      event.ID,

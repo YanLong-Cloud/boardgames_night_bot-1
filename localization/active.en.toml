@@ -28,10 +28,12 @@ EventNotFound = "Event not found."
 EventLocked = "Event is locked 🔒. Only the creator can update the event or add games."
 
 Join = "Join {{.Name}}"
+JoinEvent = "Join event"
 UpdatedAt = "<i>Updated at {{.Time}}</i>"
 Update = "Update"
 NotComing = "Not coming"
 AddGame = "Add a game"
+Players = "players"
 
 Open = "Click here to open event {{.Name }} settings and join."
 
