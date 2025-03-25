@@ -53,6 +53,7 @@ func (c *Controller) InjectRoute() {
 	c.Router.GET("/events/:event_id", c.Event)
 	c.Router.GET("/events/:event_id/games/:game_id", c.Game)
 	c.Router.POST("/events/:event_id/games/:game_id", c.UpdateGame)
+	c.Router.DELETE("/events/:event_id/games/:game_id", c.DeleteGame)
 	c.Router.POST("/events/:event_id/add-game", c.AddGame)
 	c.Router.POST("/events/:event_id/join", c.AddPlayer)
 }
@@ -182,6 +183,9 @@ func (c *Controller) Game(ctx *gin.Context) {
 		"UpdateGame":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUpdateGame"}),
 		"Update":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "Update"}),
 		"UnlinkFormBoardGameGeek": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUnlinkFormBoardGameGeek"}),
+		"GameDeletedSuccessfully": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebGameDeletedSuccessfully"}),
+		"DeleteGameConfirmation":  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDeleteGameConfirmation"}),
+		"FailedToDeleteGame":      localizer.MustLocalizeMessage(&i18n.Message{ID: "WebFailedToDeleteGame"}),
 	})
 }
 
@@ -296,7 +300,6 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			log.Println("Failed because unchanged", err)
 		}
-
 	}
 
 	for _, g := range event.BoardGames {
@@ -321,7 +324,69 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 		"UpdateGame":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUpdateGame"}),
 		"Update":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "Update"}),
 		"UnlinkFormBoardGameGeek": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUnlinkFormBoardGameGeek"}),
+		"GameDeletedSuccessfully": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebGameDeletedSuccessfully"}),
+		"DeleteGameConfirmation":  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDeleteGameConfirmation"}),
+		"FailedToDeleteGame":      localizer.MustLocalizeMessage(&i18n.Message{ID: "WebFailedToDeleteGame"}),
 	})
+}
+
+func (c *Controller) DeleteGame(ctx *gin.Context) {
+	var err error
+	eventID := ctx.Param("event_id")
+	gameID, err2 := strconv.ParseInt(ctx.Param("game_id"), 10, 64)
+	if err2 != nil {
+		c.renderError(ctx, nil, nil, "Invalid game ID")
+		return
+	}
+	userID, err2 := strconv.ParseInt(ctx.Query("user_id"), 10, 64)
+	if err2 != nil {
+		c.renderError(ctx, nil, nil, "Invalid user ID")
+		return
+	}
+
+	if !models.IsValidUUID(eventID) {
+		c.renderError(ctx, nil, nil, "Invalid event ID")
+		return
+	}
+
+	var event *models.Event
+	var game *models.BoardGame
+
+	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		c.renderError(ctx, nil, nil, "Invalid event ID")
+		return
+	}
+
+	if event.Locked && event.UserID != userID {
+		log.Println("Event is locked")
+		c.renderError(ctx, &event.ID, &event.ChatID, "Unable to delete game to locked event")
+		return
+	}
+
+	for _, g := range event.BoardGames {
+		if g.ID == gameID {
+			game = &g
+			break
+		}
+	}
+
+	if game == nil {
+		c.renderError(ctx, &event.ID, &event.ChatID, "Invalid game ID")
+		return
+	}
+
+	if err = c.DB.DeleteBoardGameByID(gameID); err != nil {
+		log.Println("Failed to delete board game:", err)
+		c.renderError(ctx, &event.ID, &event.ChatID, "Failed to delete board game")
+		return
+	}
+
+	if err = c.updateTelegram(ctx, eventID); err != nil {
+		log.Println("Failed to update telegram", err)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Game deleted."})
 }
 
 func (c *Controller) AddGame(ctx *gin.Context) {
@@ -462,7 +527,6 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
 			log.Println("Failed because unchanged", err)
 		}
-
 	}
 
 	var game *models.BoardGame
@@ -485,6 +549,9 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		"UpdateGame":              localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUpdateGame"}),
 		"Update":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "Update"}),
 		"UnlinkFormBoardGameGeek": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebUnlinkFormBoardGameGeek"}),
+		"GameDeletedSuccessfully": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebGameDeletedSuccessfully"}),
+		"DeleteGameConfirmation":  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDeleteGameConfirmation"}),
+		"FailedToDeleteGame":      localizer.MustLocalizeMessage(&i18n.Message{ID: "WebFailedToDeleteGame"}),
 	})
 }
 
@@ -544,4 +611,39 @@ func (c *Controller) AddPlayer(ctx *gin.Context) {
 
 func P(x string) *string {
 	return &x
+}
+
+func (c *Controller) updateTelegram(ctx *gin.Context, eventID string) error {
+	var err error
+	var event *models.Event
+
+	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
+		log.Println("Failed to load game:", err)
+		c.renderError(ctx, &eventID, &event.ChatID, "Invalid event ID")
+
+		return err
+	}
+
+	if event.MessageID == nil {
+		log.Println("Event message id is nil")
+		c.renderError(ctx, &eventID, &event.ChatID, "Invalid message ID")
+		return err
+	}
+
+	body, markup := event.FormatMsg(c.Localizer(&event.ChatID), c.BaseUrl, c.BotName)
+
+	_, err = c.Bot.Edit(&telebot.Message{
+		ID: int(*event.MessageID),
+		Chat: &telebot.Chat{
+			ID: event.ChatID,
+		},
+	}, body, markup, telebot.NoPreview)
+	if err != nil {
+		log.Println("Failed to edit message", err)
+		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
+			log.Println("Failed because unchanged", err)
+		}
+	}
+
+	return nil
 }

@@ -380,6 +380,20 @@ func (d *Database) UpdateBoardGameBGGInfoByID(ID int64, maxPlayers int, bggID *i
 	return nil
 }
 
+func (d *Database) DeleteBoardGameByID(ID int64) error {
+	query := `DELETE FROM boardgames WHERE id = @id;`
+
+	if _, err := d.db.Exec(query,
+		NamedArgs(map[string]any{
+			"id": ID,
+		})...,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *Database) HasBoardGameWithMessageID(messageID int64) bool {
 	query := `SELECT id FROM boardgames WHERE message_id = @message_id;`
 
