@@ -10,10 +10,39 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
         h1 { color: #333; text-align: center; }
-        .game-info { max-width: 600px; margin: 20px auto; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); }
-        .game-info a { text-decoration: none; color: #007bff; font-weight: bold; }
-        .game-info p { margin: 10px 0; }
-        .participants { margin-left: 20px; font-style: italic; color: #555; }
+        .game-info { 
+            max-width: 600px; 
+            margin: 20px auto; 
+            background: #fff; 
+            padding: 15px; 
+            border-radius: 10px; 
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); 
+            display: grid;
+            grid-template-columns: 5fr 1fr;
+            grid-gap: 15px;
+        }
+        .game-info a { 
+            text-decoration: none; 
+            color: #007bff; 
+            font-weight: bold; 
+        }
+        .game-info p { 
+            margin: 10px 0; 
+        }
+        .game-info img { 
+            border-radius: 5px; 
+            margin-right: 15px; 
+            object-fit: contain;
+            width: 100%;
+            align-self: center;
+            max-width: 200px;
+        }
+        .game-info .blurred-image { filter: blur(2px); }
+        .participants { 
+            margin-left: 20px; 
+            font-style: italic; 
+            color: #555; 
+        }
         .back-button {
             display: block;
             width: 200px;
@@ -45,6 +74,14 @@
             border-radius: 5px; 
             font-size: 1em;
         }
+
+        .add-game input[type=text] {
+            display: block;
+        }
+        .add-game input[type=number] {
+            display: block;
+        }
+
         .add-game button {
             width: 95%; 
             padding: 10px; 
@@ -62,7 +99,7 @@
 
         .left-button {
             display: flex;
-            justify-content: flex-end;
+            align-items: flex-start;
         }
 
         .add-game input[type="checkbox"] {
@@ -72,38 +109,70 @@
             margin-bottom: 20px;
         }
 
+        #userID {
+            display: none;
+        }
+
         label {
             font-size: 0.9em;
         }
+
+        .left-button {
+            display: flex;
+            justify-content: flex-end;
+            align-self: flex-end;
+        }
+
+        .delete {
+            background-color: #ff9966;
+            border: none;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 12px;
+            padding: 8px 12px;
+        }
+
+        .capitalize { text-transform: capitalize; }
 
         #auth { max-width: 600px; margin: 0 auto; text-align: center; }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <h1>🎲 {{ .Game.Name }}</h1>
-    
     <div class="game-info">
-        <p><strong>Game:</strong> {{ .Game.Name }}</p>
-        {{ if .Game.BggUrl }}
-        <p><strong>More Info:</strong> <a href="{{ .Game.BggUrl }}" target="_blank">🔗{{ .Game.BggName }}</a></p>
-        {{ end }}
-        <p><strong>Max Players:</strong> {{ .Game.MaxPlayers }}</p>
-        <p><strong>Participants:</strong></p>
-        <div class="participants">
-            {{ if .Game.Participants }}
-                {{ range .Game.Participants }}
-                <p>- {{ .UserName }}</p>
-                {{ end }}
-            {{ else }}
-                <p>- {{ $noParticipants }}</p>
+        <div>
+            <h2>{{ .Game.Name }}</h2>
+            {{ if .Game.BggImageUrl }}
+            <img class="swap-image" src="{{ .Game.BggImageUrl }}" custom="{{ .Game.BggImageUrl}}" alt="Game image of {{ .Game.Name }}">
             {{ end }}
+            {{ if .Game.BggUrl }}
+            <p><a href="{{ .Game.BggUrl }}" target="_blank">🔗{{ .Game.BggName }}</a></p>
+            {{ end }}
+            <p><strong>{{ .MaxPlayers }}:</strong> {{ .Game.MaxPlayers }}</p>
+            <p><strong class="capitalize">{{ .Players }}:</strong></p>
+            <div class="participants">
+                {{ if .Game.Participants }}
+                    {{ range .Game.Participants }}
+                    <p>- {{ .UserName }}</p>
+                    {{ end }}
+                {{ else }}
+                    <p>- {{ $noParticipants }}</p>
+                {{ end }}
+            </div>
+        </div>
+        <div class="left-button">
+            <button class="delete" value="{{ .ID }}">{{ .Delete }}</button>
         </div>
     </div>
     <div id="auth">
         <div class="add-game">
             <h3>{{ .UpdateGame }}</h3>
-            <form action="{{ .Game.ID }}" method="POST">
+            <form action="/events/{{ .Id }}/games/{{ .Game.ID }}" method="POST">
                 <input type="number" name="max_players" placeholder="{{ .MaxPlayers }}">
                 <input type="text" name="bgg_url" placeholder="BGG URL">
                 <input type="text" name="user_id" placeholder="Your username" id="userID" required hidden>
@@ -122,7 +191,57 @@
         }
         else {
             document.getElementById("auth").setAttribute("style", "display: none;");
+            document.getElementsByClassName("delete")[0].setAttribute("style", "display: none;");
         }
+
+        function deleteEntity(eventId, gameId, confirmationText) {
+            // confirm does not work on linux desktop
+            if (!confirm(confirmationText)) {
+                return;
+            }
+
+            fetch(`/events/${eventId}/games/${gameId}?user_id=${user.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to delete entity: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(`{{ .GameDeletedSuccessfully }}`);
+                location.href = `/events/{{ .Id }}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('{{ .FailedToDeleteGame }}');
+            });
+        }
+        document.addEventListener("DOMContentLoaded", () => 
+        {
+            document.querySelectorAll(".swap-image").forEach(img => {
+                img.setAttribute("src", img.getAttribute("custom"));
+            });
+            document.querySelectorAll(".delete").forEach(button => 
+            {
+                button.addEventListener("click",  () => 
+                {
+                    const eventId = "{{ .Id }}";
+                    const gameId = "{{ .Game.ID }}";
+                    const confirmationText = "{{ .DeleteGameConfirmation }}";
+
+                    if (eventId && gameId) {
+                        deleteEntity(eventId, gameId, confirmationText);
+                    } else {
+                        console.error("Missing event ID or game ID.");
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html>
