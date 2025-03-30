@@ -186,6 +186,7 @@ func (c *Controller) Game(ctx *gin.Context) {
 		"GameDeletedSuccessfully": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebGameDeletedSuccessfully"}),
 		"DeleteGameConfirmation":  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDeleteGameConfirmation"}),
 		"FailedToDeleteGame":      localizer.MustLocalizeMessage(&i18n.Message{ID: "WebFailedToDeleteGame"}),
+		"Delete":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDelete"}),
 	})
 }
 
@@ -327,6 +328,7 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 		"GameDeletedSuccessfully": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebGameDeletedSuccessfully"}),
 		"DeleteGameConfirmation":  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDeleteGameConfirmation"}),
 		"FailedToDeleteGame":      localizer.MustLocalizeMessage(&i18n.Message{ID: "WebFailedToDeleteGame"}),
+		"Delete":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDelete"}),
 	})
 }
 
@@ -552,6 +554,7 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		"GameDeletedSuccessfully": localizer.MustLocalizeMessage(&i18n.Message{ID: "WebGameDeletedSuccessfully"}),
 		"DeleteGameConfirmation":  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDeleteGameConfirmation"}),
 		"FailedToDeleteGame":      localizer.MustLocalizeMessage(&i18n.Message{ID: "WebFailedToDeleteGame"}),
+		"Delete":                  localizer.MustLocalizeMessage(&i18n.Message{ID: "WebDelete"}),
 	})
 }
 

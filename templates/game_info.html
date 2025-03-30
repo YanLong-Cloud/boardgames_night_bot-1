@@ -74,6 +74,14 @@
             border-radius: 5px; 
             font-size: 1em;
         }
+
+        .add-game input[type=text] {
+            display: block;
+        }
+        .add-game input[type=number] {
+            display: block;
+        }
+
         .add-game button {
             width: 95%; 
             padding: 10px; 
@@ -101,6 +109,10 @@
             margin-bottom: 20px;
         }
 
+        #userID {
+            display: none;
+        }
+
         label {
             font-size: 0.9em;
         }
@@ -108,6 +120,7 @@
         .left-button {
             display: flex;
             justify-content: flex-end;
+            align-self: flex-end;
         }
 
         .delete {
@@ -153,13 +166,13 @@
             </div>
         </div>
         <div class="left-button">
-            <button class="delete" value="{{ .ID }}">❌</button>
+            <button class="delete" value="{{ .ID }}">{{ .Delete }}</button>
         </div>
     </div>
     <div id="auth">
         <div class="add-game">
             <h3>{{ .UpdateGame }}</h3>
-            <form action="{{ .Game.ID }}" method="POST">
+            <form action="/events/{{ .Id }}/games/{{ .Game.ID }}" method="POST">
                 <input type="number" name="max_players" placeholder="{{ .MaxPlayers }}">
                 <input type="text" name="bgg_url" placeholder="BGG URL">
                 <input type="text" name="user_id" placeholder="Your username" id="userID" required hidden>
