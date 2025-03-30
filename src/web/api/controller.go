@@ -275,32 +275,8 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 		return
 	}
 
-	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
-		c.renderError(ctx, &eventID, &event.ChatID, "Invalid event ID")
-
-		return
-	}
-
-	if event.MessageID == nil {
-		log.Println("Event message id is nil")
-		c.renderError(ctx, &eventID, &event.ChatID, "Invalid message ID")
-		return
-	}
-
-	body, markup := event.FormatMsg(c.Localizer(&event.ChatID), c.BaseUrl, c.BotName)
-
-	_, err = c.Bot.Edit(&telebot.Message{
-		ID: int(*event.MessageID),
-		Chat: &telebot.Chat{
-			ID: event.ChatID,
-		},
-	}, body, markup, telebot.NoPreview)
-	if err != nil {
-		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			log.Println("Failed because unchanged", err)
-		}
+	if event, err = c.updateTelegram(ctx, eventID); err != nil {
+		log.Println("Failed to update telegram", err)
 	}
 
 	for _, g := range event.BoardGames {
@@ -384,7 +360,7 @@ func (c *Controller) DeleteGame(ctx *gin.Context) {
 		return
 	}
 
-	if err = c.updateTelegram(ctx, eventID); err != nil {
+	if _, err = c.updateTelegram(ctx, eventID); err != nil {
 		log.Println("Failed to update telegram", err)
 	}
 
@@ -504,31 +480,8 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 		return
 	}
 
-	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
-		c.renderError(ctx, &event.ID, &event.ChatID, "Invalid event ID")
-		return
-	}
-
-	if event.MessageID == nil {
-		log.Println("Event message id is nil")
-		c.renderError(ctx, &event.ID, &event.ChatID, "Invalid message ID")
-		return
-	}
-
-	body, markup := event.FormatMsg(c.Localizer(&event.ChatID), c.BaseUrl, c.BotName)
-
-	_, err = c.Bot.Edit(&telebot.Message{
-		ID: int(*event.MessageID),
-		Chat: &telebot.Chat{
-			ID: event.ChatID,
-		},
-	}, body, markup, telebot.NoPreview)
-	if err != nil {
-		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			log.Println("Failed because unchanged", err)
-		}
+	if event, err = c.updateTelegram(ctx, eventID); err != nil {
+		log.Println("Failed to update telegram", err)
 	}
 
 	var game *models.BoardGame
@@ -560,7 +513,6 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 
 func (c *Controller) AddPlayer(ctx *gin.Context) {
 	var err error
-	var event *models.Event
 	eventID := ctx.Param("event_id")
 
 	if !models.IsValidUUID(eventID) {
@@ -581,32 +533,8 @@ func (c *Controller) AddPlayer(ctx *gin.Context) {
 		return
 	}
 
-	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
-		return
-	}
-
-	if event.MessageID == nil {
-		log.Println("Event message id is nil")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid message ID"})
-		return
-	}
-
-	body, markup := event.FormatMsg(c.Localizer(&event.ChatID), c.BaseUrl, c.BotName)
-
-	_, err = c.Bot.Edit(&telebot.Message{
-		ID: int(*event.MessageID),
-		Chat: &telebot.Chat{
-			ID: event.ChatID,
-		},
-	}, body, markup, telebot.NoPreview)
-	if err != nil {
-		log.Println("Failed to edit message", err)
-		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			log.Println("Failed because unchanged", err)
-		}
-
+	if _, err = c.updateTelegram(ctx, eventID); err != nil {
+		log.Println("Failed to update telegram", err)
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Player added."})
@@ -616,7 +544,7 @@ func P(x string) *string {
 	return &x
 }
 
-func (c *Controller) updateTelegram(ctx *gin.Context, eventID string) error {
+func (c *Controller) updateTelegram(ctx *gin.Context, eventID string) (*models.Event, error) {
 	var err error
 	var event *models.Event
 
@@ -624,13 +552,13 @@ func (c *Controller) updateTelegram(ctx *gin.Context, eventID string) error {
 		log.Println("Failed to load game:", err)
 		c.renderError(ctx, &eventID, &event.ChatID, "Invalid event ID")
 
-		return err
+		return nil, err
 	}
 
 	if event.MessageID == nil {
 		log.Println("Event message id is nil")
 		c.renderError(ctx, &eventID, &event.ChatID, "Invalid message ID")
-		return err
+		return nil, err
 	}
 
 	body, markup := event.FormatMsg(c.Localizer(&event.ChatID), c.BaseUrl, c.BotName)
@@ -648,5 +576,5 @@ func (c *Controller) updateTelegram(ctx *gin.Context, eventID string) error {
 		}
 	}
 
-	return nil
+	return event, nil
 }
