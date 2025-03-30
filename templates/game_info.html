@@ -185,6 +185,8 @@
 
     <script>
         var user = window?.Telegram?.WebApp?.initDataUnsafe?.user;
+        var username = user.username || `${user.first_name} ${user.last_name}`;
+
         if(user)
         { 
             document.getElementById("userID").value = user.id;
@@ -200,7 +202,7 @@
                 return;
             }
 
-            fetch(`/events/${eventId}/games/${gameId}?user_id=${user.id}`, {
+            fetch(`/events/${eventId}/games/${gameId}?user_id=${user.id}&username=${username}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'

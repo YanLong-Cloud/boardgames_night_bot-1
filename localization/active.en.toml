@@ -34,6 +34,7 @@ Update = "Update"
 NotComing = "Not coming"
 AddGame = "Add a game"
 Players = "players"
+GameHasBeenDeleted = "The game {{.Game}} has been deleted from the event {{.Event}} by {{.Username}}."
 
 Open = "Click here to open event {{.Name }} settings and join."
 

@@ -322,6 +322,8 @@ func (c *Controller) DeleteGame(ctx *gin.Context) {
 		return
 	}
 
+	username := ctx.Query("username")
+
 	if !models.IsValidUUID(eventID) {
 		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
@@ -358,6 +360,29 @@ func (c *Controller) DeleteGame(ctx *gin.Context) {
 		log.Println("failed to delete board game:", err)
 		c.renderError(ctx, &event.ID, &event.ChatID, "Failed to delete board game")
 		return
+	}
+
+	to := &telebot.Chat{
+		ID: event.ChatID,
+	}
+
+	message := c.Localizer(&event.ChatID).MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID: "GameHasBeenDeleted",
+		},
+		TemplateData: map[string]string{
+			"Username": username,
+			"Game":     game.Name,
+			"Event":    event.Name,
+		},
+	})
+
+	options := &telebot.SendOptions{
+		ParseMode: telebot.ModeHTML,
+	}
+
+	if _, err = c.Bot.Send(to, message, options); err != nil {
+		log.Println("failed to send message:", err)
 	}
 
 	if _, err = c.updateTelegram(ctx, eventID); err != nil {

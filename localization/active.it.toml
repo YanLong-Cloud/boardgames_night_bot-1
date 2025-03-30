@@ -34,6 +34,7 @@ Update = "Aggiorna"
 NotComing = "Non partecipo"
 AddGame = "Aggiungi un gioco"
 Players = "partecipanti"
+GameHasBeenDeleted = "Il gioco {{.Game}} è stato eliminato dall'evento {{.Event}} da {{.Username}}."
 
 Open = "Premi qui per aprire le impostazioni dell'evento {{.Name}} e partecipare."
 
