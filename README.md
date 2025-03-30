@@ -26,6 +26,7 @@ To install the Boardgame Night Bot, follow these steps:
     BASE_URL=https://xxxxxxxxxxxxxxxxxxxxxxxxx.com
     BOT_NAME=name_of_your_bot 
     PORT=8080
+    DB_PATH=./archive 
     ```
 
 > [!Note]
@@ -44,6 +45,37 @@ To start the bot, run the following command:
 
 ```bash
 go run src/main.go
+```
+
+## Docker
+
+```bash
+docker build -t bgg_night .
+docker run --env-file .env -p 8080:8080 -v ./archive:/archive bgg_night
+```
+
+## Docker Compose
+
+```
+version: "3.8"
+
+services:
+  bgg_night:
+    build: .
+    container_name: bgg_night
+    environment:
+      - TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      - HEALTH_CHECK_URL=https://hc-ping.com/xxxxxxxxxxxxxxxxxxx
+      - BASE_URL=https://xxxxxxxxxxxxxxxxxxxxxxxxx.com
+      - BOT_NAME=name_of_your_bot 
+      - PORT=8080
+      - DB_PATH=/archive
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./archive:/archive
+    restart: unless-stopped
+
 ```
 
 ## Contributing

@@ -6,12 +6,15 @@ import (
 	"boardgame-night-bot/src/models"
 	"boardgame-night-bot/src/telegram"
 	"boardgame-night-bot/src/web"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"time"
 
@@ -29,18 +32,18 @@ func callEndpoint(url string) func() {
 	return func() {
 		resp, err := http.Get(url)
 		if err != nil {
-			log.Println("Error calling endpoint:", err)
+			log.Println("error calling endpoint:", err)
 			return
 		}
 
 		defer resp.Body.Close()
-		log.Println("Endpoint called successfully at", time.Now())
+		log.Println("endpoint called successfully at", time.Now())
 	}
 }
 
 func InitHealthCheck(url string) {
 	if url == "" {
-		log.Println("HEALTH_CHECK_URL is not set in .env file")
+		log.Println("the HEALTH_CHECK_URL is not set in .env file")
 		return
 	}
 
@@ -49,16 +52,26 @@ func InitHealthCheck(url string) {
 	c := cron.New()
 	_, err := c.AddFunc("@hourly", callEndpoint(url))
 	if err != nil {
-		log.Println("Error scheduling cron job:", err)
+		log.Println("error scheduling cron job:", err)
 		return
 	}
 
 	c.Start()
-	log.Println("Cron job started...")
+	log.Println("cron job started...")
+}
+
+func StringOrDefault(s, defaultValue string) string {
+	if s == "" {
+		return defaultValue
+	}
+	return s
 }
 
 func main() {
 	var err error
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	bundle := i18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
@@ -74,17 +87,17 @@ func main() {
 	}
 
 	if err = godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+		log.Default().Printf("warn loading .env file: %v", err)
 	}
 
 	botToken := os.Getenv("TOKEN")
 	if botToken == "" {
-		log.Fatal("TOKEN is not set in .env file")
+		log.Fatal("the TOKEN is not set in .env file")
 	}
 
 	botName := os.Getenv("BOT_NAME")
 	if botToken == "" {
-		log.Fatal("BOT_NAME is not set in .env file")
+		log.Fatal("the BOT_NAME is not set in .env file")
 	}
 
 	healthCheckUrl := os.Getenv("HEALTH_CHECK_URL")
@@ -94,14 +107,16 @@ func main() {
 	portString := os.Getenv("PORT")
 	port, err := strconv.Atoi(portString)
 	if err != nil {
-		log.Fatal("PORT is not set in .env file")
+		log.Fatal("the PORT is not set in .env file or is not a valid number")
 	}
 
-	db := database.NewDatabase()
+	dbPath := StringOrDefault(os.Getenv("DB_PATH"), "./archive")
+
+	db := database.NewDatabase(dbPath)
 
 	defer db.Close()
 
-	log.Println("Database connection established.")
+	log.Println("database connection established.")
 
 	db.CreateTables()
 
@@ -132,7 +147,7 @@ func main() {
 		BotName:        botName,
 	}
 
-	log.Println("Bot started.")
+	log.Println("bot started")
 
 	bot.Handle("/start", telegram.Start)
 	bot.Handle("/help", telegram.Start)
@@ -162,19 +177,39 @@ func main() {
 			return telegram.CallbackRemovePlayer(c)
 		}
 
-		return c.Reply("Invalid action")
+		return c.Reply("invalid action")
 	})
 
 	go func() {
-		log.Println("Server started.")
-		web.StartServer(port, db, bgg, bot, bundle, baseUrl, botName)
-		log.Println("Server stopped.")
+		log.Println("server started")
+		web.StartServer(port, db, bgg, bot, bundle, dbPath, botName)
+		log.Println("server stopped")
 	}()
 	go func() {
-		log.Println("Bot started.")
+		log.Println("bot started")
 		bot.Start()
-		log.Println("Bot stopped.")
+		log.Println("bot stopped")
 	}()
 
-	select {}
+	<-signalChan
+	log.Println("shutdown signal received.")
+
+	// Gracefully stop the server and bot
+	gracefulShutdown(bot)
+
+	log.Println("shutdown complete.")
+}
+
+func gracefulShutdown(bot *telebot.Bot) {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Stop the bot
+	go func() {
+		bot.Stop() // Assuming bot has a Stop() method
+		log.Println("bot shutdown completed.")
+	}()
+
+	// Wait for the shutdown timeout or for cleanup to finish
+	<-shutdownCtx.Done()
 }

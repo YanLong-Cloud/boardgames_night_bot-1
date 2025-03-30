@@ -99,7 +99,7 @@ func (c *Controller) Event(ctx *gin.Context) {
 	var event *models.Event
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
+		log.Println("failed to load game:", err)
 		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
@@ -155,7 +155,7 @@ func (c *Controller) Game(ctx *gin.Context) {
 	var game *models.BoardGame
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
+		log.Println("failed to load game:", err)
 		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
@@ -206,7 +206,7 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 
 	var bg models.UpdateGameRequest
 	if err = ctx.ShouldBind(&bg); err != nil {
-		log.Println("Failed to bind form:", err)
+		log.Println("failed to bind form:", err)
 		c.renderError(ctx, nil, nil, "Invalid submitted form")
 		return
 	}
@@ -215,13 +215,13 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 	var game *models.BoardGame
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
+		log.Println("failed to load game:", err)
 		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
 
 	if event.Locked && event.UserID != bg.UserID {
-		log.Println("Event is locked")
+		log.Println("event is locked")
 		c.renderError(ctx, &event.ID, &event.ChatID, "Unable to add game to locked event")
 		return
 	}
@@ -270,13 +270,13 @@ func (c *Controller) UpdateGame(ctx *gin.Context) {
 	}
 
 	if err = c.DB.UpdateBoardGameBGGInfoByID(gameID, maxPlayers, bgID, bgName, bgUrl, bgImageUrl); err != nil {
-		log.Println("Failed to update board game:", err)
+		log.Println("failed to update board game:", err)
 		c.renderError(ctx, &eventID, &event.ChatID, "Failed to update board game")
 		return
 	}
 
 	if event, err = c.updateTelegram(ctx, eventID); err != nil {
-		log.Println("Failed to update telegram", err)
+		log.Println("failed to update telegram", err)
 	}
 
 	for _, g := range event.BoardGames {
@@ -331,13 +331,13 @@ func (c *Controller) DeleteGame(ctx *gin.Context) {
 	var game *models.BoardGame
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
+		log.Println("failed to load game:", err)
 		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
 
 	if event.Locked && event.UserID != userID {
-		log.Println("Event is locked")
+		log.Println("event is locked")
 		c.renderError(ctx, &event.ID, &event.ChatID, "Unable to delete game to locked event")
 		return
 	}
@@ -355,13 +355,13 @@ func (c *Controller) DeleteGame(ctx *gin.Context) {
 	}
 
 	if err = c.DB.DeleteBoardGameByID(gameID); err != nil {
-		log.Println("Failed to delete board game:", err)
+		log.Println("failed to delete board game:", err)
 		c.renderError(ctx, &event.ID, &event.ChatID, "Failed to delete board game")
 		return
 	}
 
 	if _, err = c.updateTelegram(ctx, eventID); err != nil {
-		log.Println("Failed to update telegram", err)
+		log.Println("failed to update telegram", err)
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Game deleted."})
@@ -379,20 +379,20 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 	var event *models.Event
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
+		log.Println("failed to load game:", err)
 		c.renderError(ctx, nil, nil, "Invalid event ID")
 		return
 	}
 
 	var bg models.AddGameRequest
 	if err = ctx.ShouldBind(&bg); err != nil {
-		log.Println("Failed to bind form:", err)
+		log.Println("failed to bind form:", err)
 		c.renderError(ctx, &event.ID, &event.ChatID, "Invalid submitted form data")
 		return
 	}
 
 	if event.Locked && event.UserID != bg.UserID {
-		log.Println("Event is locked")
+		log.Println("event is locked")
 		c.renderError(ctx, &event.ID, &event.ChatID, "Unable to add game to locked event")
 		return
 	}
@@ -475,13 +475,13 @@ func (c *Controller) AddGame(ctx *gin.Context) {
 	log.Printf("Inserting %s in the db", bg.Name)
 
 	if _, err = c.DB.InsertBoardGame(event.ID, bg.Name, *bg.MaxPlayers, bgID, bgName, bgUrl, bgImageUrl); err != nil {
-		log.Println("Failed to insert board game:", err)
+		log.Println("failed to insert board game:", err)
 		c.renderError(ctx, &event.ID, &event.ChatID, "Failed to insert board game")
 		return
 	}
 
 	if event, err = c.updateTelegram(ctx, eventID); err != nil {
-		log.Println("Failed to update telegram", err)
+		log.Println("failed to update telegram", err)
 	}
 
 	var game *models.BoardGame
@@ -522,19 +522,19 @@ func (c *Controller) AddPlayer(ctx *gin.Context) {
 
 	var addPlayer models.AddPlayerRequest
 	if err = ctx.ShouldBindJSON(&addPlayer); err != nil {
-		log.Println("Failed to bind form:", err)
+		log.Println("failed to bind form:", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
 		return
 	}
 
 	if _, err = c.DB.InsertParticipant(eventID, addPlayer.GameID, addPlayer.UserID, addPlayer.UserName); err != nil {
-		log.Println("Failed to add user to participants table:", err)
+		log.Println("failed to add user to participants table:", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
 		return
 	}
 
 	if _, err = c.updateTelegram(ctx, eventID); err != nil {
-		log.Println("Failed to update telegram", err)
+		log.Println("failed to update telegram", err)
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Player added."})
@@ -549,14 +549,14 @@ func (c *Controller) updateTelegram(ctx *gin.Context, eventID string) (*models.E
 	var event *models.Event
 
 	if event, err = c.DB.SelectEventByEventID(eventID); err != nil {
-		log.Println("Failed to load game:", err)
+		log.Println("failed to load game:", err)
 		c.renderError(ctx, &eventID, &event.ChatID, "Invalid event ID")
 
 		return nil, err
 	}
 
 	if event.MessageID == nil {
-		log.Println("Event message id is nil")
+		log.Println("event message id is nil")
 		c.renderError(ctx, &eventID, &event.ChatID, "Invalid message ID")
 		return nil, err
 	}
@@ -570,9 +570,9 @@ func (c *Controller) updateTelegram(ctx *gin.Context, eventID string) (*models.E
 		},
 	}, body, markup, telebot.NoPreview)
 	if err != nil {
-		log.Println("Failed to edit message", err)
+		log.Println("failed to edit message", err)
 		if strings.Contains(err.Error(), models.MessageUnchangedErrorMessage) {
-			log.Println("Failed because unchanged", err)
+			log.Println("failed because unchanged", err)
 		}
 	}
 

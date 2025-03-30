@@ -17,21 +17,10 @@ func StartServer(port int, db *database.Database, bgg *gobgg.BGG, bot *telebot.B
 
 	router.Use(gin.Logger())
 	router.LoadHTMLGlob("templates/*")
-	//tmpl := template.Must(template.ParseFiles("templates/index.html"))
-	//router.SetHTMLTemplate(tmpl)
 
 	controller := api.NewController(router.Group("/"), db, bgg, bot, bundle, baseUrl, botName)
 
 	controller.InjectRoute()
-	// // Serve static files
-	// router.Static("/static", "./static")
-
-	// // Route to serve the HTML page
-	// router.GET("/", func(c *gin.Context) {
-	// 	c.HTML(http.StatusOK, "index.html", nil)
-	// })
-
-	// // Load HTML templates
 
 	router.NoRoute(func(ctx *gin.Context) {
 		controller.NoRoute(ctx)

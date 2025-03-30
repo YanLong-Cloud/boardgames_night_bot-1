@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -19,10 +20,10 @@ type Database struct {
 
 var ErrNoRows = errors.New("sql: no rows in result set")
 
-func NewDatabase() *Database {
-	db, err := sql.Open("sqlite3", "bot_data.sqlite")
+func NewDatabase(path string) *Database {
+	db, err := sql.Open("sqlite3", filepath.Join(path, "bot_data.sqlite"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to open database '"+filepath.Join(path, "bot_data.sqlite")+"':", err)
 	}
 
 	return &Database{db}
@@ -85,12 +86,12 @@ func (d *Database) CreateTables() {
 		}
 	}
 
-	log.Println("Database tables ensured.")
+	log.Println("database tables ensured")
 }
 
 func (d *Database) Close() {
 	d.db.Close()
-	log.Println("Database connection closed.")
+	log.Println("database connection closed")
 }
 
 func (d *Database) InsertEvent(chatID, userID int64, userName, name string, messageID *int64) (string, error) {
