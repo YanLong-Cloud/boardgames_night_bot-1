@@ -1,4 +1,4 @@
-# Boardgame Night Bot
+# Boardgames Night Bot
 
 Welcome to the Boardgame Night Bot project! This bot is designed to help you organize and manage board game nights with your friends.
 
@@ -50,8 +50,8 @@ go run src/main.go
 ## Docker
 
 ```bash
-docker build -t bgg_night .
-docker run --env-file .env -p 8080:8080 -v ./archive:/archive bgg_night
+docker build -t boardgames-night-bot .
+docker run --env-file .env -p 8080:8080 -v ./archive:/archive boardgames-night-bot
 ```
 
 ## Docker Compose
